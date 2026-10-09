@@ -1,0 +1,942 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Hungary Energy Price Bidding (HUPX)</title>
+  
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- bcryptjs CDN -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/bcryptjs/2.4.3/bcrypt.min.js"></script>
+  <!-- Firebase SDKs -->
+  <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore-compat.js"></script>
+</head>
+<body class="bg-slate-100 text-slate-800 font-sans min-h-screen p-4 md:p-8 relative">
+
+  <!-- BOTTOM RIGHT TOAST NOTIFICATION CONTAINER -->
+  <div id="toast-container" class="fixed bottom-4 right-4 z-50 flex flex-col gap-2 max-w-sm w-full"></div>
+
+  <div class="max-w-5xl mx-auto bg-white rounded-xl shadow-md p-6 space-y-6">
+    
+    <!-- Header & Rules Banner -->
+    <header class="border-b pb-4 flex flex-wrap justify-between items-start gap-4">
+      <div>
+        <h1 class="text-2xl font-bold text-slate-900">Hungary Day-Ahead Price Betting</h1>
+        <p class="text-sm text-slate-500 mt-1">Betting platform for daily HUPX electricity prices.</p>
+      </div>
+      <button onclick="exportToCSV()" class="bg-slate-800 hover:bg-slate-900 text-white text-xs font-semibold px-3 py-2 rounded flex items-center gap-1 shadow-sm">
+        📊 Export All Data to Excel (CSV)
+      </button>
+
+      <!-- Rules Section -->
+      <div class="w-full mt-2 bg-amber-50 border border-amber-200 rounded-lg p-3 text-xs text-amber-900">
+        <p class="font-bold">Game Rules:</p>
+        <ul class="list-disc pl-4 space-y-1 mt-1">
+          <li>Participation fee: <strong>€1.00 per bid</strong> (Fixed).</li>
+          <li>Deadline: Bids close at <strong>11:00 AM Greek Time on the day BEFORE delivery</strong>.</li>
+          <li><strong>Closest Bid Takes All:</strong> Winner takes the €1 pool for that delivery date.</li>
+          <li><strong>Condition:</strong> Winner's bid must be within <strong>&lt; €10.00/MWh</strong> of actual price, otherwise pool rolls over / no winner.</li>
+          <li>Bids cannot be edited once submitted. Bids remain hidden until you bid or actual price is set.</li>
+        </ul>
+      </div>
+    </header>
+
+    <!-- AUTHENTICATION CONTAINER -->
+    <div id="auth-container" class="space-y-4">
+      <div class="flex border-b border-slate-200">
+        <button id="tab-login" onclick="switchAuthTab('login')" class="px-4 py-2 border-b-2 border-indigo-600 font-semibold text-indigo-600">Login</button>
+        <button id="tab-register" onclick="switchAuthTab('register')" class="px-4 py-2 font-semibold text-slate-500">Register (Invite)</button>
+      </div>
+
+      <!-- Login Form -->
+      <form id="login-form" onsubmit="handleLogin(event)" class="space-y-3 max-w-md">
+        <input type="email" id="login-email" placeholder="Email" required class="w-full p-2 border rounded">
+        <input type="password" id="login-password" placeholder="Password" required class="w-full p-2 border rounded">
+        <button type="submit" class="w-full bg-indigo-600 text-white py-2 rounded font-semibold hover:bg-indigo-700">Log In</button>
+      </form>
+
+      <!-- Registration Form -->
+      <form id="register-form" onsubmit="handleRegister(event)" class="space-y-3 max-w-md hidden">
+        <input type="text" id="reg-invite" placeholder="Invite Code" required class="w-full p-2 border rounded">
+        <input type="text" id="reg-username" placeholder="Choose Username" required class="w-full p-2 border rounded">
+        <input type="email" id="reg-email" placeholder="Email" required class="w-full p-2 border rounded">
+        <input type="password" id="reg-password" placeholder="Password" required class="w-full p-2 border rounded">
+        <button type="submit" class="w-full bg-emerald-600 text-white py-2 rounded font-semibold hover:bg-emerald-700">Register Account</button>
+      </form>
+    </div>
+
+    <!-- MAIN APP DASHBOARD -->
+    <div id="app-dashboard" class="space-y-6 hidden">
+      
+      <!-- Top Status bar & Tab Navigation -->
+      <div class="flex flex-wrap justify-between items-center bg-slate-50 p-3 rounded border gap-2">
+        <div class="flex border-b border-slate-300 gap-1 text-sm">
+          <button id="nav-bidding" onclick="switchAppTab('bidding')" class="px-3 py-1.5 font-semibold border-b-2 border-indigo-600 text-indigo-600">1. Bidding & Actuals</button>
+          <button id="nav-leaderboard" onclick="switchAppTab('leaderboard')" class="px-3 py-1.5 font-semibold text-slate-500">2. Leaderboards</button>
+          <button id="nav-settlement" onclick="switchAppTab('settlement')" class="px-3 py-1.5 font-semibold text-slate-500">3. Settlements</button>
+          <button id="nav-invites" onclick="switchAppTab('invites')" class="px-3 py-1.5 font-semibold text-slate-500">4. Manage Invites</button>
+        </div>
+        <div class="text-xs">Logged in as: <strong id="user-display-name">...</strong> | <button onclick="handleLogout()" class="text-red-600 underline">Logout</button></div>
+      </div>
+
+      <!-- TAB 1: BIDDING & ACTUALS -->
+      <div id="tab-content-bidding" class="space-y-6">
+        
+        <!-- WARNING BANNER FOR NON-TOMORROW SELECTION -->
+        <div id="date-warning-banner" class="hidden bg-amber-500 text-white p-3 rounded-lg shadow font-bold text-sm flex items-center gap-2">
+          ⚠️ <span>WARNING: You have selected a target date that is NOT tomorrow (<span id="warning-date-label"></span>).</span>
+        </div>
+
+        <!-- COMMON DATE PICKER & SUBMIT BIDS SECTION -->
+        <section class="bg-indigo-50/50 p-4 rounded-lg border border-indigo-100 space-y-4">
+          <div class="flex flex-wrap justify-between items-center gap-2 border-b border-indigo-100 pb-3">
+            <div>
+              <label class="block text-xs font-bold text-indigo-900 mb-1">Target Delivery Date (Common Selector):</label>
+              <input type="date" id="common-date" onchange="handleDateChange()" class="p-2 border rounded font-bold text-slate-800 bg-white shadow-sm">
+            </div>
+            <!-- Countdown Timer Display -->
+            <div id="countdown-banner" class="bg-indigo-100 border border-indigo-300 text-indigo-900 px-3 py-1 rounded text-xs font-mono font-bold flex items-center gap-1">
+              Deadline: <span id="countdown-timer">--:--:--</span>
+            </div>
+          </div>
+          
+          <div class="flex flex-wrap gap-4 items-end">
+            <div>
+              <label class="block text-xs font-semibold mb-1">Bid Price (EUR/MWh):</label>
+              <input type="number" step="0.01" id="bid-price" placeholder="e.g. 84.50" class="p-2 border rounded">
+            </div>
+            <button id="submit-bid-btn" onclick="submitBid()" class="bg-indigo-600 text-white px-4 py-2 rounded font-semibold hover:bg-indigo-700">Submit Bid (€1)</button>
+          </div>
+
+          <!-- Bids Table -->
+          <div class="mt-4">
+            <h3 class="text-sm font-semibold mb-2">Bids for <span id="selected-date-label"></span>:</h3>
+            <table class="w-full text-left text-sm bg-white rounded border overflow-hidden">
+              <thead class="bg-slate-100 border-b">
+                <tr>
+                  <th class="p-2">User</th>
+                  <th class="p-2">Status</th>
+                  <th class="p-2">Bid Value</th>
+                </tr>
+              </thead>
+              <tbody id="bids-table-body">
+                <tr><td colspan="3" class="p-2 text-slate-400">Select a date to view bids.</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </section>
+
+        <!-- SET ACTUAL HUPX PRICE -->
+        <section class="bg-emerald-50/50 p-4 rounded-lg border border-emerald-100 space-y-3">
+          <h2 class="text-lg font-bold text-emerald-900">Settle Actual HUPX Price for <span id="actual-date-label" class="font-mono underline"></span></h2>
+          <div class="flex flex-wrap gap-4 items-end">
+            <div>
+              <label class="block text-xs font-semibold mb-1">Actual Final HUPX Price (EUR):</label>
+              <input type="number" step="0.01" id="actual-price" placeholder="e.g. 82.10" class="p-2 border rounded">
+            </div>
+            <button onclick="submitActualPrice()" class="bg-emerald-600 text-white px-4 py-2 rounded font-semibold hover:bg-emerald-700">Set / Update Actual Price</button>
+          </div>
+        </section>
+      </div>
+
+      <!-- TAB 2: LEADERBOARDS -->
+      <div id="tab-content-leaderboard" class="space-y-4 hidden">
+        <h2 class="text-lg font-bold">Leaderboards & Accuracy Ratings</h2>
+        <div class="grid md:grid-cols-2 gap-4">
+          <div class="bg-white p-4 rounded border shadow-sm">
+            <h3 class="font-bold text-sm text-slate-700 mb-2">Current Month Leaderboard (Lowest MAE)</h3>
+            <table class="w-full text-left text-xs">
+              <thead class="border-b bg-slate-50">
+                <tr>
+                  <th class="p-2">User</th>
+                  <th class="p-2">Wins</th>
+                  <th class="p-2">MAE (€)</th>
+                </tr>
+              </thead>
+              <tbody id="monthly-leaderboard-body"></tbody>
+            </table>
+          </div>
+
+          <div class="bg-white p-4 rounded border shadow-sm">
+            <h3 class="font-bold text-sm text-slate-700 mb-2">All-Time MAE & Bids</h3>
+            <table class="w-full text-left text-xs">
+              <thead class="border-b bg-slate-50">
+                <tr>
+                  <th class="p-2">User</th>
+                  <th class="p-2">Bids</th>
+                  <th class="p-2">All-Time MAE</th>
+                </tr>
+              </thead>
+              <tbody id="alltime-leaderboard-body"></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- TAB 3: SETTLEMENTS -->
+      <div id="tab-content-settlement" class="space-y-6 hidden">
+        <h2 class="text-lg font-bold">Financial Settlement & Debts</h2>
+
+        <div class="flex gap-4 items-center bg-slate-50 p-3 rounded border">
+          <label class="text-xs font-semibold">Filter Settlement Period:</label>
+          <select id="settlement-month-filter" onchange="loadAnalyticsAndSettlements()" class="p-1 border rounded text-xs bg-white font-bold">
+            <!-- Dynamic dropdown options -->
+          </select>
+        </div>
+
+        <div class="grid md:grid-cols-2 gap-4">
+          <div class="bg-white p-4 rounded border">
+            <h3 class="text-xs font-semibold mb-2">Net Balances</h3>
+            <table class="w-full text-left text-xs border">
+              <thead class="bg-slate-100 border-b">
+                <tr>
+                  <th class="p-2">User</th>
+                  <th class="p-2">Bids (€1)</th>
+                  <th class="p-2">Wins</th>
+                  <th class="p-2">Net Balance</th>
+                </tr>
+              </thead>
+              <tbody id="settlement-table-body"></tbody>
+            </table>
+          </div>
+
+          <div class="bg-white p-4 rounded border">
+            <h3 class="text-xs font-semibold mb-2">Payment Transfers (Who pays whom)</h3>
+            <ul id="payments-list" class="text-xs space-y-2 p-3 bg-slate-50 border rounded font-mono">
+              <li class="text-slate-400">Loading settlement routing...</li>
+            </ul>
+          </div>
+        </div>
+
+        <!-- Detailed Breakdown Matrix for All Users -->
+        <div class="bg-white p-4 rounded border space-y-3">
+          <h3 class="text-xs font-semibold">Daily Breakdown & Net Results for All Users</h3>
+          <div class="overflow-x-auto">
+            <table class="w-full text-left text-xs border">
+              <thead class="bg-slate-100 border-b">
+                <tr>
+                  <th class="p-2">Date</th>
+                  <th class="p-2">Actual Price</th>
+                  <th class="p-2">User</th>
+                  <th class="p-2">Bid Price</th>
+                  <th class="p-2">Daily Net Result</th>
+                </tr>
+              </thead>
+              <tbody id="daily-breakdown-body"></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- TAB 4: MANAGE INVITES -->
+      <div id="tab-content-invites" class="space-y-4 hidden">
+        <h2 class="text-lg font-bold">Generate & Manage Invites</h2>
+        <div class="bg-white p-4 rounded border space-y-3 max-w-md">
+          <button onclick="generateInviteCode()" class="bg-emerald-600 text-white px-4 py-2 rounded text-xs font-semibold hover:bg-emerald-700">Generate New Invite Link</button>
+          <div id="new-invite-result" class="text-xs font-mono p-2 bg-emerald-50 text-emerald-900 rounded hidden border border-emerald-200"></div>
+        </div>
+
+        <div class="bg-white p-4 rounded border">
+          <h3 class="text-xs font-semibold mb-2">Existing Invite Codes</h3>
+          <table class="w-full text-left text-xs border">
+            <thead class="bg-slate-100 border-b">
+              <tr>
+                <th class="p-2">Code</th>
+                <th class="p-2">Status</th>
+                <th class="p-2">Used By (Username)</th>
+                <th class="p-2">Action</th>
+              </tr>
+            </thead>
+            <tbody id="invites-table-body"></tbody>
+          </table>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <script>
+    // -------------------------------------------------------------
+    // FIREBASE CONFIGURATION
+    // -------------------------------------------------------------
+    const firebaseConfig = {
+      apiKey: "AIzaSyC-98ixBhOkp0-9sh64Rl0AJ233PIJcFCs",
+      authDomain: "hungary-energy-betting.firebaseapp.com",
+      projectId: "hungary-energy-betting",
+      storageBucket: "hungary-energy-betting.firebasestorage.app",
+      messagingSenderId: "262554148647",
+      appId: "1:262554148647:web:0117a6b939cdbcbac9d302"
+    };
+
+    firebase.initializeApp(firebaseConfig);
+    const auth = firebase.auth();
+    const db = firebase.firestore();
+
+    let currentUser = null;
+    let currentUsername = "";
+    let globalBids = [];
+    let globalActuals = {};
+    let usersMap = {};
+    let timerInterval = null;
+
+    function getTomorrowStr() {
+      const tomorrow = new Date();
+      tomorrow.setDate(tomorrow.getDate() + 1);
+      return tomorrow.toISOString().split('T')[0];
+    }
+
+    document.getElementById('common-date').value = getTomorrowStr();
+
+    // -------------------------------------------------------------
+    // TOAST NOTIFICATIONS
+    // -------------------------------------------------------------
+    function showToast(message, type = 'info') {
+      const container = document.getElementById('toast-container');
+      const toast = document.createElement('div');
+      
+      let bgColors = type === 'error' ? 'bg-red-600 text-white' : type === 'success' ? 'bg-emerald-600 text-white' : 'bg-slate-800 text-white';
+      toast.className = `${bgColors} px-4 py-3 rounded shadow-lg text-xs font-medium transition-all duration-300 opacity-0 transform translate-y-2 flex justify-between items-center`;
+      toast.innerHTML = `<span>${message}</span><button onclick="this.parentElement.remove()" class="ml-2 font-bold opacity-75 hover:opacity-100">&times;</button>`;
+      
+      container.appendChild(toast);
+      setTimeout(() => toast.classList.remove('opacity-0', 'translate-y-2'), 10);
+
+      setTimeout(() => {
+        toast.classList.add('opacity-0', 'translate-y-2');
+        setTimeout(() => toast.remove(), 300);
+      }, 4000);
+    }
+
+    // Auth Tab Switcher
+    function switchAuthTab(tab) {
+      if(tab === 'login') {
+        document.getElementById('login-form').classList.remove('hidden');
+        document.getElementById('register-form').classList.add('hidden');
+        document.getElementById('tab-login').className = "px-4 py-2 border-b-2 border-indigo-600 font-semibold text-indigo-600";
+        document.getElementById('tab-register').className = "px-4 py-2 font-semibold text-slate-500";
+      } else {
+        document.getElementById('login-form').classList.add('hidden');
+        document.getElementById('register-form').classList.remove('hidden');
+        document.getElementById('tab-register').className = "px-4 py-2 border-b-2 border-indigo-600 font-semibold text-indigo-600";
+        document.getElementById('tab-login').className = "px-4 py-2 font-semibold text-slate-500";
+      }
+    }
+
+    // Main App Tab Switcher
+    function switchAppTab(tabName) {
+      const tabs = ['bidding', 'leaderboard', 'settlement', 'invites'];
+      tabs.forEach(t => {
+        const content = document.getElementById(`tab-content-${t}`);
+        const nav = document.getElementById(`nav-${t}`);
+        if(t === tabName) {
+          content.classList.remove('hidden');
+          nav.className = "px-3 py-1.5 font-semibold border-b-2 border-indigo-600 text-indigo-600";
+        } else {
+          content.classList.add('hidden');
+          nav.className = "px-3 py-1.5 font-semibold text-slate-500";
+        }
+      });
+      if(tabName === 'invites') loadInvitesList();
+    }
+
+    // -------------------------------------------------------------
+    // UNIFIED DATE PICKER HANDLER
+    // -------------------------------------------------------------
+    function handleDateChange() {
+      const selectedDate = document.getElementById('common-date').value;
+      const tomorrowDate = getTomorrowStr();
+      const warningBanner = document.getElementById('date-warning-banner');
+      const warningLabel = document.getElementById('warning-date-label');
+
+      if (selectedDate !== tomorrowDate) {
+        warningLabel.innerText = selectedDate;
+        warningBanner.classList.remove('hidden');
+      } else {
+        warningBanner.classList.add('hidden');
+      }
+
+      document.getElementById('actual-date-label').innerText = selectedDate;
+      loadDateData();
+    }
+
+    // -------------------------------------------------------------
+    // DEADLINE LOGIC: BID BEFORE 11 AM GREEK TIME ON DAY BEFORE
+    // -------------------------------------------------------------
+    function getSubmissionDeadline(targetDeliveryDateStr) {
+      const targetDate = new Date(targetDeliveryDateStr + "T00:00:00Z");
+      const deadlineDate = new Date(targetDate);
+      deadlineDate.setUTCDate(deadlineDate.getUTCDate() - 1);
+      
+      const deadlineStr = deadlineDate.toISOString().split('T')[0] + "T11:00:00+03:00";
+      return new Date(deadlineStr);
+    }
+
+    function isPastDeadline(targetDeliveryDateStr) {
+      const deadline = getSubmissionDeadline(targetDeliveryDateStr);
+      const now = new Date();
+      return now > deadline;
+    }
+
+    function startCountdownTimer() {
+      if (timerInterval) clearInterval(timerInterval);
+
+      function updateTimer() {
+        const targetDateStr = document.getElementById('common-date').value;
+        if (!targetDateStr) return;
+
+        const deadline = getSubmissionDeadline(targetDateStr);
+        const now = new Date();
+        const diff = deadline - now;
+
+        const timerDisplay = document.getElementById('countdown-timer');
+        const banner = document.getElementById('countdown-banner');
+
+        if (diff <= 0) {
+          timerDisplay.innerText = "SUBMISSION CLOSED";
+          banner.className = "bg-red-100 border border-red-300 text-red-900 px-3 py-1 rounded text-xs font-mono font-bold flex items-center gap-1";
+        } else {
+          const hours = Math.floor(diff / (1000 * 60 * 60));
+          const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
+          const seconds = Math.floor((diff % (1000 * 60)) / 1000);
+
+          timerDisplay.innerText = `${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
+          banner.className = "bg-indigo-100 border border-indigo-300 text-indigo-900 px-3 py-1 rounded text-xs font-mono font-bold flex items-center gap-1";
+        }
+      }
+
+      updateTimer();
+      timerInterval = setInterval(updateTimer, 1000);
+    }
+
+    // -------------------------------------------------------------
+    // AUTHENTICATION & REGISTRATION
+    // -------------------------------------------------------------
+    async function handleRegister(e) {
+      e.preventDefault();
+      const inviteCode = document.getElementById('reg-invite').value.trim();
+      const username = document.getElementById('reg-username').value.trim();
+      const email = document.getElementById('reg-email').value.trim();
+      const password = document.getElementById('reg-password').value;
+
+      try {
+        const inviteRef = db.collection('invites').doc(inviteCode);
+        const inviteSnap = await inviteRef.get();
+
+        if (!inviteSnap.exists || inviteSnap.data().used) {
+          showToast('Invalid or already used invite code!', 'error');
+          return;
+        }
+
+        const salt = dcodeIO.bcrypt.genSaltSync(10);
+        const passwordHash = dcodeIO.bcrypt.hashSync(password, salt);
+
+        const creds = await auth.createUserWithEmailAndPassword(email, password);
+        
+        await db.collection('users').doc(creds.user.uid).set({
+          username: username,
+          passwordHash: passwordHash,
+          created_at: firebase.firestore.FieldValue.serverTimestamp()
+        });
+
+        await inviteRef.update({ 
+          used: true, 
+          used_by_uid: creds.user.uid,
+          used_by_username: username 
+        });
+
+        showToast('Registration successful!', 'success');
+      } catch (err) {
+        showToast('Registration failed: ' + err.message, 'error');
+      }
+    }
+
+    async function handleLogin(e) {
+      e.preventDefault();
+      const email = document.getElementById('login-email').value;
+      const password = document.getElementById('login-password').value;
+
+      try {
+        await auth.signInWithEmailAndPassword(email, password);
+      } catch (err) {
+        showToast('Login failed: ' + err.message, 'error');
+      }
+    }
+
+    function handleLogout() {
+      auth.signOut();
+    }
+
+    auth.onAuthStateChanged(async (user) => {
+      currentUser = user;
+      if (user) {
+        const userDoc = await db.collection('users').doc(user.uid).get();
+        currentUsername = userDoc.exists ? userDoc.data().username : user.email;
+        document.getElementById('user-display-name').innerText = currentUsername;
+
+        document.getElementById('auth-container').classList.add('hidden');
+        document.getElementById('app-dashboard').classList.remove('hidden');
+
+        await cacheUsers();
+        handleDateChange();
+        loadAnalyticsAndSettlements();
+      } else {
+        document.getElementById('auth-container').classList.remove('hidden');
+        document.getElementById('app-dashboard').classList.add('hidden');
+      }
+    });
+
+    async function cacheUsers() {
+      const snap = await db.collection('users').get();
+      snap.forEach(doc => {
+        usersMap[doc.id] = doc.data().username || 'Unknown';
+      });
+    }
+
+    // -------------------------------------------------------------
+    // BID SUBMISSION & VISIBILITY CONTROL
+    // -------------------------------------------------------------
+    async function submitBid() {
+      const targetDate = document.getElementById('common-date').value;
+      const priceInput = document.getElementById('bid-price');
+      const price = parseFloat(priceInput.value);
+
+      if (!targetDate || isNaN(price)) {
+        showToast('Please enter a valid price.', 'error');
+        return;
+      }
+
+      if (isPastDeadline(targetDate)) {
+        showToast('Deadline passed! Bids for ' + targetDate + ' closed at 11:00 AM Greek time on the day before.', 'error');
+        return;
+      }
+
+      const docId = `${currentUser.uid}_${targetDate}`;
+      
+      const existingSnap = await db.collection('bids').doc(docId).get();
+      if (existingSnap.exists) {
+        showToast('You have already submitted a bid for this date and cannot modify it.', 'error');
+        return;
+      }
+
+      await db.collection('bids').doc(docId).set({
+        user_id: currentUser.uid,
+        username: currentUsername,
+        target_date: targetDate,
+        bid_price: price,
+        submitted_at: firebase.firestore.FieldValue.serverTimestamp()
+      });
+
+      showToast('Bid submitted successfully!', 'success');
+      loadDateData();
+      loadAnalyticsAndSettlements();
+    }
+
+    async function loadDateData() {
+      const targetDate = document.getElementById('common-date').value;
+      document.getElementById('selected-date-label').innerText = targetDate;
+      startCountdownTimer();
+      
+      const bidsSnap = await db.collection('bids').where('target_date', '==', targetDate).get();
+      const actualSnap = await db.collection('actuals').doc(targetDate).get();
+      
+      const actualInput = document.getElementById('actual-price');
+      if (actualSnap.exists) {
+        actualInput.value = actualSnap.data().actual_price;
+      } else {
+        actualInput.value = '';
+      }
+
+      const actualPriceExists = actualSnap.exists;
+      const bidsTable = document.getElementById('bids-table-body');
+      
+      // CHECK IF LOGGED-IN USER HAS SUBMITTED A BID FOR THIS TARGET DATE
+      const selfBidDoc = bidsSnap.docs.find(doc => doc.data().user_id === currentUser.uid);
+      const userHasBid = !!selfBidDoc;
+      
+      const priceInput = document.getElementById('bid-price');
+      const submitBtn = document.getElementById('submit-bid-btn');
+
+      if (userHasBid) {
+        priceInput.value = selfBidDoc.data().bid_price;
+        priceInput.disabled = true;
+        priceInput.className = "p-2 border rounded bg-slate-100 font-bold text-slate-500 cursor-not-allowed";
+        submitBtn.disabled = true;
+        submitBtn.className = "bg-slate-400 text-white px-4 py-2 rounded font-semibold cursor-not-allowed";
+        submitBtn.innerText = `Submitted (€${selfBidDoc.data().bid_price.toFixed(2)})`;
+      } else {
+        priceInput.value = '';
+        priceInput.disabled = false;
+        priceInput.className = "p-2 border rounded";
+        submitBtn.disabled = false;
+        submitBtn.className = "bg-indigo-600 text-white px-4 py-2 rounded font-semibold hover:bg-indigo-700";
+        submitBtn.innerText = "Submit Bid (€1)";
+      }
+
+      bidsTable.innerHTML = '';
+      
+      if (bidsSnap.empty) {
+        bidsTable.innerHTML = `<tr><td colspan="3" class="p-2 text-slate-400">No bids submitted yet for this date.</td></tr>`;
+        return;
+      }
+
+      bidsSnap.forEach(doc => {
+        const data = doc.data();
+        const isSelf = data.user_id === currentUser.uid;
+        
+        // VISIBILITY RULE: HIDE OTHER BIDS UNLESS USER HAS SUBMITTED A BID FOR THIS DATE OR ACTUAL PRICE IS SET
+        let displayPrice = "Hidden until you bid";
+        if (userHasBid || isSelf || actualPriceExists) {
+          displayPrice = `€${data.bid_price.toFixed(2)}/MWh`;
+        }
+
+        bidsTable.innerHTML += `
+          <tr class="border-b">
+            <td class="p-2 font-medium">${data.username}</td>
+            <td class="p-2 text-xs"><span class="bg-emerald-100 text-emerald-800 px-2 py-0.5 rounded">Submitted</span></td>
+            <td class="p-2 font-mono">${displayPrice}</td>
+          </tr>
+        `;
+      });
+    }
+
+    // -------------------------------------------------------------
+    // SETTLE ACTUAL PRICE & ZERO-SUM ANALYTICS
+    // -------------------------------------------------------------
+    async function submitActualPrice() {
+      const targetDate = document.getElementById('common-date').value;
+      const actualPrice = parseFloat(document.getElementById('actual-price').value);
+
+      if (!targetDate || isNaN(actualPrice)) {
+        showToast('Enter a valid actual price.', 'error');
+        return;
+      }
+
+      await db.collection('actuals').doc(targetDate).set({
+        actual_price: actualPrice,
+        submitted_by: currentUsername,
+        updated_at: firebase.firestore.FieldValue.serverTimestamp()
+      });
+
+      showToast(`Actual HUPX Price for ${targetDate} updated!`, 'success');
+      loadDateData();
+      loadAnalyticsAndSettlements();
+    }
+
+    async function loadAnalyticsAndSettlements() {
+      const bidsSnap = await db.collection('bids').get();
+      const actualsSnap = await db.collection('actuals').get();
+
+      globalActuals = {};
+      actualsSnap.forEach(doc => globalActuals[doc.id] = doc.data().actual_price);
+
+      globalBids = [];
+      bidsSnap.forEach(doc => globalBids.push(doc.data()));
+
+      const currentMonthKey = new Date().toISOString().substring(0, 7);
+      
+      const selectUI = document.getElementById('settlement-month-filter');
+      let filterMonth = selectUI.value || currentMonthKey;
+
+      const availableMonths = new Set([currentMonthKey]);
+      globalBids.forEach(b => availableMonths.add(b.target_date.substring(0, 7)));
+      
+      selectUI.innerHTML = '<option value="ALL">All Time</option>';
+      Array.from(availableMonths).sort().reverse().forEach(m => {
+        const isSelected = filterMonth === m ? 'selected' : '';
+        selectUI.innerHTML += `<option value="${m}" ${isSelected}>${m} ${m === currentMonthKey ? '(Current Month)' : ''}</option>`;
+      });
+
+      filterMonth = selectUI.value;
+
+      const userStats = {};
+      const monthlyStats = {};
+
+      const bidsByDate = {};
+      globalBids.forEach(data => {
+        if (!bidsByDate[data.target_date]) bidsByDate[data.target_date] = [];
+        bidsByDate[data.target_date].push(data);
+
+        if (!userStats[data.username]) userStats[data.username] = { bidsCount: 0, totalAE: 0, settledDaysCount: 0, wins: 0, netBalance: 0 };
+        if (!monthlyStats[data.username]) monthlyStats[data.username] = { bidsCount: 0, totalAE: 0, settledDaysCount: 0, wins: 0 };
+      });
+
+      const detailedBreakdown = [];
+
+      Object.keys(bidsByDate).sort().reverse().forEach(date => {
+        const dateBids = bidsByDate[date];
+        const actual = globalActuals[date];
+        const isSelectedMonth = (filterMonth === 'ALL' || date.startsWith(filterMonth));
+        const isCurrentMonth = date.startsWith(currentMonthKey);
+
+        let bestDiff = Infinity;
+        let winner = null;
+
+        // 1. Calculate accuracy and check if a bid is within < €10.00 threshold
+        dateBids.forEach(b => {
+          if (actual !== undefined) {
+            const ae = Math.abs(b.bid_price - actual);
+            userStats[b.username].totalAE += ae;
+            userStats[b.username].settledDaysCount += 1;
+
+            if (isCurrentMonth) {
+              monthlyStats[b.username].totalAE += ae;
+              monthlyStats[b.username].settledDaysCount += 1;
+            }
+
+            if (ae < bestDiff && ae < 10.0) {
+              bestDiff = ae;
+              winner = b.username;
+            }
+          }
+
+          if (isSelectedMonth) {
+            userStats[b.username].bidsCount += 1;
+          }
+
+          if (isCurrentMonth) {
+            monthlyStats[b.username].bidsCount += 1;
+          }
+        });
+
+        // 2. STRICT ZERO-SUM NETTING: Apply charges ONLY when a valid winner exists
+        if (winner && isSelectedMonth) {
+          dateBids.forEach(b => {
+            if (b.username === winner) {
+              userStats[winner].wins += 1;
+              userStats[winner].netBalance += (dateBids.length - 1); // Winner claims pot minus own €1
+            } else {
+              userStats[b.username].netBalance -= 1; // Loser pays €1
+            }
+          });
+
+          if (isCurrentMonth) {
+            monthlyStats[winner].wins += 1;
+          }
+        }
+
+        // 3. Populate detailed daily breakdown table
+        dateBids.forEach(b => {
+          let netResultText = "Pending";
+          let resultColor = "text-slate-500";
+
+          if (actual !== undefined) {
+            if (winner === b.username) {
+              const netGain = dateBids.length - 1;
+              netResultText = `+€${netGain.toFixed(2)} (Winner)`;
+              resultColor = "text-emerald-600 font-bold";
+            } else if (winner !== null) {
+              netResultText = `-€1.00`;
+              resultColor = "text-red-600 font-bold";
+            } else {
+              netResultText = `€0.00 (No winner <€10)`;
+              resultColor = "text-amber-600 font-bold";
+            }
+          }
+
+          detailedBreakdown.push({
+            date,
+            actual: actual !== undefined ? `€${actual.toFixed(2)}` : 'Pending',
+            username: b.username,
+            bidPrice: `€${b.bid_price.toFixed(2)}`,
+            netResult: netResultText,
+            color: resultColor
+          });
+        });
+      });
+
+      renderTables(monthlyStats, userStats, detailedBreakdown);
+    }
+
+    function renderTables(monthlyStats, userStats, detailedBreakdown) {
+      // Render Current Month Leaderboard
+      const monthlyBody = document.getElementById('monthly-leaderboard-body');
+      monthlyBody.innerHTML = '';
+      const sortedMonthly = Object.keys(monthlyStats).sort((a,b) => {
+        const maeA = monthlyStats[a].settledDaysCount ? (monthlyStats[a].totalAE / monthlyStats[a].settledDaysCount) : 999;
+        const maeB = monthlyStats[b].settledDaysCount ? (monthlyStats[b].totalAE / monthlyStats[b].settledDaysCount) : 999;
+        return maeA - maeB;
+      });
+
+      sortedMonthly.forEach(u => {
+        const stats = monthlyStats[u];
+        const mae = stats.settledDaysCount ? (stats.totalAE / stats.settledDaysCount).toFixed(2) : "N/A";
+        monthlyBody.innerHTML += `
+          <tr class="border-b">
+            <td class="p-2 font-medium">${u}</td>
+            <td class="p-2">${stats.wins}</td>
+            <td class="p-2 font-mono">${mae} €/MWh</td>
+          </tr>
+        `;
+      });
+
+      // Render All-Time Leaderboard
+      const allTimeBody = document.getElementById('alltime-leaderboard-body');
+      allTimeBody.innerHTML = '';
+      const sortedAllTime = Object.keys(userStats).sort((a,b) => {
+        const maeA = userStats[a].settledDaysCount ? (userStats[a].totalAE / userStats[a].settledDaysCount) : 999;
+        const maeB = userStats[b].settledDaysCount ? (userStats[b].totalAE / userStats[b].settledDaysCount) : 999;
+        return maeA - maeB;
+      });
+
+      sortedAllTime.forEach(u => {
+        const stats = userStats[u];
+        const mae = stats.settledDaysCount ? (stats.totalAE / stats.settledDaysCount).toFixed(2) : "N/A";
+        allTimeBody.innerHTML += `
+          <tr class="border-b">
+            <td class="p-2 font-medium">${u}</td>
+            <td class="p-2">${stats.bidsCount}</td>
+            <td class="p-2 font-mono">${mae} €/MWh</td>
+          </tr>
+        `;
+      });
+
+      // Render Net Settlement Balances
+      const settlementBody = document.getElementById('settlement-table-body');
+      settlementBody.innerHTML = '';
+      sortedAllTime.forEach(u => {
+        const stats = userStats[u];
+        const color = stats.netBalance > 0 ? 'text-emerald-600' : stats.netBalance < 0 ? 'text-red-600' : 'text-slate-600';
+        settlementBody.innerHTML += `
+          <tr class="border-b">
+            <td class="p-2 font-medium">${u}</td>
+            <td class="p-2">€${stats.bidsCount}</td>
+            <td class="p-2">${stats.wins}</td>
+            <td class="p-2 font-mono font-bold ${color}">€${stats.netBalance.toFixed(2)}</td>
+          </tr>
+        `;
+      });
+
+      // Render Detailed Daily Breakdown
+      const dailyBody = document.getElementById('daily-breakdown-body');
+      dailyBody.innerHTML = '';
+      detailedBreakdown.forEach(row => {
+        dailyBody.innerHTML += `
+          <tr class="border-b">
+            <td class="p-2 font-mono">${row.date}</td>
+            <td class="p-2 font-mono">${row.actual}</td>
+            <td class="p-2 font-medium">${row.username}</td>
+            <td class="p-2 font-mono">${row.bidPrice}</td>
+            <td class="p-2 font-mono ${row.color}">${row.netResult}</td>
+          </tr>
+        `;
+      });
+
+      renderSettlementRouting(userStats);
+    }
+
+    // -------------------------------------------------------------
+    // DEBT NETTING ALGORITHM
+    // -------------------------------------------------------------
+    function renderSettlementRouting(userStats) {
+      const debtors = [];
+      const creditors = [];
+
+      Object.keys(userStats).forEach(u => {
+        const bal = userStats[u].netBalance;
+        if (bal < 0) debtors.push({ user: u, amount: -bal });
+        else if (bal > 0) creditors.push({ user: u, amount: bal });
+      });
+
+      const paymentsUI = document.getElementById('payments-list');
+      paymentsUI.innerHTML = '';
+
+      if (debtors.length === 0 && creditors.length === 0) {
+        paymentsUI.innerHTML = '<li>All balances are zero. No transfers needed.</li>';
+        return;
+      }
+
+      let i = 0, j = 0;
+      while (i < debtors.length && j < creditors.length) {
+        const payAmount = Math.min(debtors[i].amount, creditors[j].amount);
+        
+        paymentsUI.innerHTML += `
+          <li>🔴 <strong>${debtors[i].user}</strong> pays 🟢 <strong>${creditors[j].user}</strong>: <span class="font-bold">€${payAmount.toFixed(2)}</span></li>
+        `;
+
+        debtors[i].amount -= payAmount;
+        creditors[j].amount -= payAmount;
+
+        if (debtors[i].amount === 0) i++;
+        if (creditors[j].amount === 0) j++;
+      }
+    }
+
+    // -------------------------------------------------------------
+    // MANAGE INVITES & DELETE LOGIC
+    // -------------------------------------------------------------
+    async function generateInviteCode() {
+      const code = 'INVITE-' + Math.random().toString(36).substring(2, 8).toUpperCase();
+      await db.collection('invites').doc(code).set({
+        used: false,
+        created_by: currentUsername,
+        created_at: firebase.firestore.FieldValue.serverTimestamp()
+      });
+
+      const resultUI = document.getElementById('new-invite-result');
+      resultUI.innerText = `Created Invite Code: ${code}`;
+      resultUI.classList.remove('hidden');
+      showToast('Invite code generated!', 'success');
+      loadInvitesList();
+    }
+
+    async function deleteInviteCode(code) {
+      await db.collection('invites').doc(code).delete();
+      showToast(`Invite link ${code} deleted.`, 'info');
+      loadInvitesList();
+    }
+
+    async function loadInvitesList() {
+      const snap = await db.collection('invites').get();
+      const body = document.getElementById('invites-table-body');
+      body.innerHTML = '';
+
+      snap.forEach(doc => {
+        const data = doc.data();
+        const status = data.used 
+          ? '<span class="bg-red-100 text-red-800 px-2 py-0.5 rounded">Used</span>' 
+          : '<span class="bg-emerald-100 text-emerald-800 px-2 py-0.5 rounded">Active</span>';
+
+        const usedUsername = data.used_by_username || (data.used_by_uid ? (usersMap[data.used_by_uid] || 'Registered User') : '-');
+
+        const actionBtn = !data.used 
+          ? `<button onclick="deleteInviteCode('${doc.id}')" class="bg-red-50 text-red-600 hover:bg-red-100 px-2 py-1 rounded text-xs font-semibold">Delete</button>`
+          : `<span class="text-slate-400 text-xs">N/A</span>`;
+
+        body.innerHTML += `
+          <tr class="border-b">
+            <td class="p-2 font-mono font-bold">${doc.id}</td>
+            <td class="p-2">${status}</td>
+            <td class="p-2 font-medium">${usedUsername}</td>
+            <td class="p-2">${actionBtn}</td>
+          </tr>
+        `;
+      });
+    }
+
+    // -------------------------------------------------------------
+    // EXPORT DATA TO EXCEL / CSV
+    // -------------------------------------------------------------
+    function exportToCSV() {
+      let csvContent = "data:text/csv;charset=utf-8,";
+      csvContent += "Target Date,User,Bid Price (EUR),Actual Price (EUR)\n";
+
+      globalBids.forEach(b => {
+        const actual = globalActuals[b.target_date] !== undefined ? globalActuals[b.target_date] : "";
+        csvContent += `${b.target_date},${b.username},${b.bid_price},${actual}\n`;
+      });
+
+      const encodedUri = encodeURI(csvContent);
+      const link = document.createElement("a");
+      link.setAttribute("href", encodedUri);
+      link.setAttribute("download", `HUPX_Bids_Backup_${new Date().toISOString().split('T')[0]}.csv`);
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      showToast('Exported CSV successfully.', 'success');
+    }
+  </script>
+</body>
+</html>
