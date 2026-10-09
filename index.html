@@ -1,266 +1,767 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" class="dark">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Hungary Energy Price Bidding (HUPX)</title>
+  <title>HUPX Energy Arena | Daily Price Prediction</title>
   
+  <!-- Google Fonts: Inter & Outfit -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700;800;900&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet">
+
   <!-- Tailwind CSS CDN -->
   <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['"Plus Jakarta Sans"', 'sans-serif'],
+            display: ['"Outfit"', 'sans-serif'],
+            mono: ['"JetBrains Mono"', 'monospace'],
+          },
+          colors: {
+            brand: {
+              dark: '#0a0d16',
+              card: '#131929',
+              card2: '#182136',
+              border: '#24324f',
+              borderLight: '#32456e',
+              accent: '#6366f1',
+              neonPurple: '#8b5cf6',
+              neonPink: '#ec4899',
+              gold: '#f59e0b',
+              goldGlow: '#fbbf24',
+              emerald: '#10b981',
+            }
+          }
+        }
+      }
+    }
+  </script>
+
   <!-- bcryptjs CDN -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/bcryptjs/2.4.3/bcrypt.min.js"></script>
   <!-- Firebase SDKs -->
   <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-auth-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore-compat.js"></script>
-</head>
-<body class="bg-slate-100 text-slate-800 font-sans min-h-screen p-4 md:p-8 relative">
 
-  <!-- BOTTOM RIGHT TOAST NOTIFICATION CONTAINER -->
-  <div id="toast-container" class="fixed bottom-4 right-4 z-50 flex flex-col gap-2 max-w-sm w-full"></div>
+  <style>
+    body {
+      background-color: #090c15;
+      color: #e2e8f0;
+      background-image: 
+        radial-gradient(at 0% 0%, rgba(99, 102, 241, 0.12) 0px, transparent 50%),
+        radial-gradient(at 100% 0%, rgba(139, 92, 246, 0.10) 0px, transparent 50%),
+        radial-gradient(at 50% 100%, rgba(16, 185, 129, 0.08) 0px, transparent 50%);
+      background-attachment: fixed;
+    }
 
-  <div class="max-w-5xl mx-auto bg-white rounded-xl shadow-md p-6 space-y-6">
+    /* Podium Sunburst Effect */
+    .podium-sunburst {
+      background: repeating-conic-gradient(
+        from 0deg,
+        rgba(255, 255, 255, 0.03) 0deg 12deg,
+        transparent 12deg 24deg
+      );
+      mask-image: radial-gradient(circle at 50% 40%, black 20%, transparent 75%);
+      -webkit-mask-image: radial-gradient(circle at 50% 40%, black 20%, transparent 75%);
+    }
+
+    /* Starry Win Badge */
+    .star-badge-ring {
+      border: 2px dashed #f59e0b;
+      animation: rotateSlow 20s linear infinite;
+    }
+    @keyframes rotateSlow {
+      from { transform: rotate(0deg); }
+      to { transform: rotate(360deg); }
+    }
+
+    /* Countdown Digit Pulse */
+    @keyframes secondTick {
+      0%, 100% { transform: scale(1); }
+      50% { transform: scale(1.05); }
+    }
+    .tick-pulse {
+      animation: secondTick 1s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+    }
+
+    /* Glass card backdrop */
+    .glass-card {
+      background: rgba(19, 25, 41, 0.85);
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+      border: 1px solid rgba(40, 53, 84, 0.8);
+    }
     
-    <!-- Header & Rules Banner -->
-    <header class="border-b pb-4 flex flex-wrap justify-between items-start gap-4">
-      <div>
-        <h1 class="text-2xl font-bold text-slate-900">Hungary Day-Ahead Price Betting</h1>
-        <p class="text-sm text-slate-500 mt-1">Betting platform for daily HUPX electricity prices.</p>
+    .glass-card-hover:hover {
+      border-color: rgba(99, 102, 241, 0.5);
+      box-shadow: 0 8px 30px -10px rgba(99, 102, 241, 0.25);
+    }
+
+    /* Custom Scrollbar */
+    ::-webkit-scrollbar {
+      width: 6px;
+      height: 6px;
+    }
+    ::-webkit-scrollbar-track {
+      background: #0d121f;
+    }
+    ::-webkit-scrollbar-thumb {
+      background: #24324f;
+      border-radius: 9999px;
+    }
+    ::-webkit-scrollbar-thumb:hover {
+      background: #3b82f6;
+    }
+  </style>
+</head>
+<body class="min-h-screen text-slate-200 antialiased selection:bg-indigo-500 selection:text-white flex flex-col">
+
+  <!-- TOAST NOTIFICATION CONTAINER -->
+  <div id="toast-container" class="fixed bottom-5 right-5 z-50 flex flex-col gap-2 max-w-sm w-full pointer-events-none"></div>
+
+  <!-- RULES MODAL (Clean, fun, accessible anytime) -->
+  <div id="rules-modal" class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm hidden">
+    <div class="glass-card rounded-2xl max-w-md w-full p-6 space-y-4 border border-brand-borderLight shadow-2xl relative">
+      <div class="flex items-center justify-between border-b border-brand-border pb-3">
+        <div class="flex items-center gap-2">
+          <span class="text-2xl">⚡</span>
+          <h3 class="font-display font-bold text-lg text-white">How The Arena Works</h3>
+        </div>
+        <button onclick="toggleRulesModal(false)" class="text-slate-400 hover:text-white text-xl p-1 leading-none">&times;</button>
       </div>
-      <button onclick="exportToCSV()" class="bg-slate-800 hover:bg-slate-900 text-white text-xs font-semibold px-3 py-2 rounded flex items-center gap-1 shadow-sm">
-        📊 Export All Data to Excel (CSV)
+      <div class="space-y-3 text-sm text-slate-300">
+        <div class="flex items-start gap-3 p-2.5 rounded-xl bg-slate-800/50 border border-slate-700/50">
+          <span class="text-xl">🪙</span>
+          <div>
+            <span class="font-bold text-white">30 Coins Initial Credit:</span> Every player starts with 30 free coins! Placed bids cost <strong>1 Coin</strong> stake.
+          </div>
+        </div>
+        <div class="flex items-start gap-3 p-2.5 rounded-xl bg-slate-800/50 border border-slate-700/50">
+          <span class="text-xl">⏰</span>
+          <div>
+            <span class="font-bold text-white">11:00 AM Greek Time Deadline:</span> Predictions lock strictly at 11:00 AM on the day prior to delivery.
+          </div>
+        </div>
+        <div class="flex items-start gap-3 p-2.5 rounded-xl bg-slate-800/50 border border-slate-700/50">
+          <span class="text-xl">🏆</span>
+          <div>
+            <span class="font-bold text-white">Winner Takes All:</span> The closest bid to the actual HUPX price wins the entire coin pot for that day!
+          </div>
+        </div>
+        <div class="flex items-start gap-3 p-2.5 rounded-xl bg-slate-800/50 border border-slate-700/50">
+          <span class="text-xl">🎯</span>
+          <div>
+            <span class="font-bold text-white">&lt; €10.00 MWh Precision Rule:</span> Winning bid must be within €10 of the actual price, otherwise stakes are returned / rolled over.
+          </div>
+        </div>
+        <div class="flex items-start gap-3 p-2.5 rounded-xl bg-slate-800/50 border border-slate-700/50">
+          <span class="text-xl">🔒</span>
+          <div>
+            <span class="font-bold text-white">Fair Play Fog:</span> Other players' bids remain secret until you submit your own or the market settles.
+          </div>
+        </div>
+      </div>
+      <button onclick="toggleRulesModal(false)" class="w-full py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 font-semibold text-white shadow-lg shadow-indigo-600/30 transition">
+        Got it, let's play!
       </button>
-
-      <!-- Rules Section -->
-      <div class="w-full mt-2 bg-amber-50 border border-amber-200 rounded-lg p-3 text-xs text-amber-900">
-        <p class="font-bold">Game Rules:</p>
-        <ul class="list-disc pl-4 space-y-1 mt-1">
-          <li>Participation fee: <strong>€1.00 per bid</strong> (Fixed).</li>
-          <li>Deadline: Bids close at <strong>11:00 AM Greek Time on the day BEFORE delivery</strong>.</li>
-          <li><strong>Closest Bid Takes All:</strong> Winner takes the €1 pool for that delivery date.</li>
-          <li><strong>Condition:</strong> Winner's bid must be within <strong>&lt; €10.00/MWh</strong> of actual price, otherwise pool rolls over / no winner.</li>
-          <li>Bids cannot be edited once submitted. Bids remain hidden until you bid or actual price is set.</li>
-        </ul>
-      </div>
-    </header>
-
-    <!-- AUTHENTICATION CONTAINER -->
-    <div id="auth-container" class="space-y-4">
-      <div class="flex border-b border-slate-200">
-        <button id="tab-login" onclick="switchAuthTab('login')" class="px-4 py-2 border-b-2 border-indigo-600 font-semibold text-indigo-600">Login</button>
-        <button id="tab-register" onclick="switchAuthTab('register')" class="px-4 py-2 font-semibold text-slate-500">Register (Invite)</button>
-      </div>
-
-      <!-- Login Form -->
-      <form id="login-form" onsubmit="handleLogin(event)" class="space-y-3 max-w-md">
-        <input type="email" id="login-email" placeholder="Email" required class="w-full p-2 border rounded">
-        <input type="password" id="login-password" placeholder="Password" required class="w-full p-2 border rounded">
-        <button type="submit" class="w-full bg-indigo-600 text-white py-2 rounded font-semibold hover:bg-indigo-700">Log In</button>
-      </form>
-
-      <!-- Registration Form -->
-      <form id="register-form" onsubmit="handleRegister(event)" class="space-y-3 max-w-md hidden">
-        <input type="text" id="reg-invite" placeholder="Invite Code" required class="w-full p-2 border rounded">
-        <input type="text" id="reg-username" placeholder="Choose Username" required class="w-full p-2 border rounded">
-        <input type="email" id="reg-email" placeholder="Email" required class="w-full p-2 border rounded">
-        <input type="password" id="reg-password" placeholder="Password" required class="w-full p-2 border rounded">
-        <button type="submit" class="w-full bg-emerald-600 text-white py-2 rounded font-semibold hover:bg-emerald-700">Register Account</button>
-      </form>
-    </div>
-
-    <!-- MAIN APP DASHBOARD -->
-    <div id="app-dashboard" class="space-y-6 hidden">
-      
-      <!-- Top Status bar & Tab Navigation -->
-      <div class="flex flex-wrap justify-between items-center bg-slate-50 p-3 rounded border gap-2">
-        <div class="flex border-b border-slate-300 gap-1 text-sm">
-          <button id="nav-bidding" onclick="switchAppTab('bidding')" class="px-3 py-1.5 font-semibold border-b-2 border-indigo-600 text-indigo-600">1. Bidding & Actuals</button>
-          <button id="nav-leaderboard" onclick="switchAppTab('leaderboard')" class="px-3 py-1.5 font-semibold text-slate-500">2. Leaderboards</button>
-          <button id="nav-settlement" onclick="switchAppTab('settlement')" class="px-3 py-1.5 font-semibold text-slate-500">3. Settlements</button>
-          <button id="nav-invites" onclick="switchAppTab('invites')" class="px-3 py-1.5 font-semibold text-slate-500">4. Manage Invites</button>
-        </div>
-        <div class="text-xs">Logged in as: <strong id="user-display-name">...</strong> | <button onclick="handleLogout()" class="text-red-600 underline">Logout</button></div>
-      </div>
-
-      <!-- TAB 1: BIDDING & ACTUALS -->
-      <div id="tab-content-bidding" class="space-y-6">
-        
-        <!-- WARNING BANNER FOR NON-TOMORROW SELECTION -->
-        <div id="date-warning-banner" class="hidden bg-amber-500 text-white p-3 rounded-lg shadow font-bold text-sm flex items-center gap-2">
-          ⚠️ <span>WARNING: You have selected a target date that is NOT tomorrow (<span id="warning-date-label"></span>).</span>
-        </div>
-
-        <!-- COMMON DATE PICKER & SUBMIT BIDS SECTION -->
-        <section class="bg-indigo-50/50 p-4 rounded-lg border border-indigo-100 space-y-4">
-          <div class="flex flex-wrap justify-between items-center gap-2 border-b border-indigo-100 pb-3">
-            <div>
-              <label class="block text-xs font-bold text-indigo-900 mb-1">Target Delivery Date (Common Selector):</label>
-              <input type="date" id="common-date" onchange="handleDateChange()" class="p-2 border rounded font-bold text-slate-800 bg-white shadow-sm">
-            </div>
-            <!-- Countdown Timer Display -->
-            <div id="countdown-banner" class="bg-indigo-100 border border-indigo-300 text-indigo-900 px-3 py-1 rounded text-xs font-mono font-bold flex items-center gap-1">
-              Deadline: <span id="countdown-timer">--:--:--</span>
-            </div>
-          </div>
-          
-          <div class="flex flex-wrap gap-4 items-end">
-            <div>
-              <label class="block text-xs font-semibold mb-1">Bid Price (EUR/MWh):</label>
-              <input type="number" step="0.01" id="bid-price" placeholder="e.g. 84.50" class="p-2 border rounded">
-            </div>
-            <button id="submit-bid-btn" onclick="submitBid()" class="bg-indigo-600 text-white px-4 py-2 rounded font-semibold hover:bg-indigo-700">Submit Bid (€1)</button>
-          </div>
-
-          <!-- Bids Table -->
-          <div class="mt-4">
-            <h3 class="text-sm font-semibold mb-2">Bids for <span id="selected-date-label"></span>:</h3>
-            <table class="w-full text-left text-sm bg-white rounded border overflow-hidden">
-              <thead class="bg-slate-100 border-b">
-                <tr>
-                  <th class="p-2">User</th>
-                  <th class="p-2">Status</th>
-                  <th class="p-2">Bid Value</th>
-                </tr>
-              </thead>
-              <tbody id="bids-table-body">
-                <tr><td colspan="3" class="p-2 text-slate-400">Select a date to view bids.</td></tr>
-              </tbody>
-            </table>
-          </div>
-        </section>
-
-        <!-- SET ACTUAL HUPX PRICE -->
-        <section class="bg-emerald-50/50 p-4 rounded-lg border border-emerald-100 space-y-3">
-          <h2 class="text-lg font-bold text-emerald-900">Settle Actual HUPX Price for <span id="actual-date-label" class="font-mono underline"></span></h2>
-          <div class="flex flex-wrap gap-4 items-end">
-            <div>
-              <label class="block text-xs font-semibold mb-1">Actual Final HUPX Price (EUR):</label>
-              <input type="number" step="0.01" id="actual-price" placeholder="e.g. 82.10" class="p-2 border rounded">
-            </div>
-            <button onclick="submitActualPrice()" class="bg-emerald-600 text-white px-4 py-2 rounded font-semibold hover:bg-emerald-700">Set / Update Actual Price</button>
-          </div>
-        </section>
-      </div>
-
-      <!-- TAB 2: LEADERBOARDS -->
-      <div id="tab-content-leaderboard" class="space-y-4 hidden">
-        <h2 class="text-lg font-bold">Leaderboards & Accuracy Ratings</h2>
-        <div class="grid md:grid-cols-2 gap-4">
-          <div class="bg-white p-4 rounded border shadow-sm">
-            <h3 class="font-bold text-sm text-slate-700 mb-2">Current Month Leaderboard (Lowest MAE)</h3>
-            <table class="w-full text-left text-xs">
-              <thead class="border-b bg-slate-50">
-                <tr>
-                  <th class="p-2">User</th>
-                  <th class="p-2">Wins</th>
-                  <th class="p-2">MAE (€)</th>
-                </tr>
-              </thead>
-              <tbody id="monthly-leaderboard-body"></tbody>
-            </table>
-          </div>
-
-          <div class="bg-white p-4 rounded border shadow-sm">
-            <h3 class="font-bold text-sm text-slate-700 mb-2">All-Time MAE & Bids</h3>
-            <table class="w-full text-left text-xs">
-              <thead class="border-b bg-slate-50">
-                <tr>
-                  <th class="p-2">User</th>
-                  <th class="p-2">Bids</th>
-                  <th class="p-2">All-Time MAE</th>
-                </tr>
-              </thead>
-              <tbody id="alltime-leaderboard-body"></tbody>
-            </table>
-          </div>
-        </div>
-      </div>
-
-      <!-- TAB 3: SETTLEMENTS -->
-      <div id="tab-content-settlement" class="space-y-6 hidden">
-        <h2 class="text-lg font-bold">Financial Settlement & Debts</h2>
-
-        <div class="flex gap-4 items-center bg-slate-50 p-3 rounded border">
-          <label class="text-xs font-semibold">Filter Settlement Period:</label>
-          <select id="settlement-month-filter" onchange="loadAnalyticsAndSettlements()" class="p-1 border rounded text-xs bg-white font-bold">
-            <!-- Dynamic dropdown options -->
-          </select>
-        </div>
-
-        <div class="grid md:grid-cols-2 gap-4">
-          <div class="bg-white p-4 rounded border">
-            <h3 class="text-xs font-semibold mb-2">Net Balances</h3>
-            <table class="w-full text-left text-xs border">
-              <thead class="bg-slate-100 border-b">
-                <tr>
-                  <th class="p-2">User</th>
-                  <th class="p-2">Bids (€1)</th>
-                  <th class="p-2">Wins</th>
-                  <th class="p-2">Net Balance</th>
-                </tr>
-              </thead>
-              <tbody id="settlement-table-body"></tbody>
-            </table>
-          </div>
-
-          <div class="bg-white p-4 rounded border">
-            <h3 class="text-xs font-semibold mb-2">Payment Transfers (Who pays whom)</h3>
-            <ul id="payments-list" class="text-xs space-y-2 p-3 bg-slate-50 border rounded font-mono">
-              <li class="text-slate-400">Loading settlement routing...</li>
-            </ul>
-          </div>
-        </div>
-
-        <!-- Detailed Breakdown Matrix for All Users -->
-        <div class="bg-white p-4 rounded border space-y-3">
-          <h3 class="text-xs font-semibold">Daily Breakdown & Net Results for All Users</h3>
-          <div class="overflow-x-auto">
-            <table class="w-full text-left text-xs border">
-              <thead class="bg-slate-100 border-b">
-                <tr>
-                  <th class="p-2">Date</th>
-                  <th class="p-2">Actual Price</th>
-                  <th class="p-2">User</th>
-                  <th class="p-2">Bid Price</th>
-                  <th class="p-2">Daily Net Result</th>
-                </tr>
-              </thead>
-              <tbody id="daily-breakdown-body"></tbody>
-            </table>
-          </div>
-        </div>
-      </div>
-
-      <!-- TAB 4: MANAGE INVITES -->
-      <div id="tab-content-invites" class="space-y-4 hidden">
-        <h2 class="text-lg font-bold">Generate & Manage Invites</h2>
-        <div class="bg-white p-4 rounded border space-y-3 max-w-md">
-          <button onclick="generateInviteCode()" class="bg-emerald-600 text-white px-4 py-2 rounded text-xs font-semibold hover:bg-emerald-700">Generate New Invite Link</button>
-          <div id="new-invite-result" class="text-xs font-mono p-2 bg-emerald-50 text-emerald-900 rounded hidden border border-emerald-200"></div>
-        </div>
-
-        <div class="bg-white p-4 rounded border">
-          <h3 class="text-xs font-semibold mb-2">Existing Invite Codes</h3>
-          <table class="w-full text-left text-xs border">
-            <thead class="bg-slate-100 border-b">
-              <tr>
-                <th class="p-2">Code</th>
-                <th class="p-2">Status</th>
-                <th class="p-2">Used By (Username)</th>
-                <th class="p-2">Action</th>
-              </tr>
-            </thead>
-            <tbody id="invites-table-body"></tbody>
-          </table>
-        </div>
-      </div>
-
     </div>
   </div>
 
+
+
+  <!-- MAIN VIEWPORT -->
+  <main class="max-w-6xl mx-auto px-4 py-6 w-full flex-1">
+    
+    <!-- ======================================================== -->
+    <!-- AUTHENTICATION CONTAINER (Dark & Sleek) -->
+    <!-- ======================================================== -->
+    <div id="auth-container" class="max-w-md mx-auto my-12 glass-card rounded-2xl p-7 border border-brand-border shadow-2xl space-y-6 relative overflow-hidden">
+      
+      <!-- Ambient light effect -->
+      <div class="absolute -top-24 -left-24 w-48 h-48 bg-indigo-600/30 rounded-full blur-3xl pointer-events-none"></div>
+      <div class="absolute -bottom-24 -right-24 w-48 h-48 bg-emerald-600/20 rounded-full blur-3xl pointer-events-none"></div>
+
+      <div class="text-center space-y-1 relative">
+        <div class="inline-flex p-3 rounded-2xl bg-indigo-500/10 border border-indigo-500/20 mb-2">
+          <img src="castle.png" alt="Castle" class="w-12 h-12 object-contain">
+        </div>
+        <h2 class="font-display font-bold text-2xl text-white">Welcome to the Arena</h2>
+        <p class="text-xs text-slate-400">Predict daily HUPX electricity prices & climb the podium</p>
+      </div>
+
+      <!-- Auth Switcher Pill -->
+      <div class="flex p-1 bg-[#0b0e19] rounded-xl border border-brand-border relative">
+        <button id="tab-login" onclick="switchAuthTab('login')" class="flex-1 py-2 text-xs font-bold rounded-lg transition text-white bg-indigo-600 shadow-md">
+          Sign In
+        </button>
+        <button id="tab-register" onclick="switchAuthTab('register')" class="flex-1 py-2 text-xs font-bold rounded-lg transition text-slate-400 hover:text-white">
+          Join with Invite Code
+        </button>
+      </div>
+
+      <!-- Login Form -->
+      <form id="login-form" onsubmit="handleLogin(event)" class="space-y-4">
+        <div>
+          <label class="block text-xs font-semibold text-slate-300 mb-1.5">Email Address</label>
+          <input type="email" id="login-email" required placeholder="alex@energy.hu" class="w-full px-3.5 py-2.5 rounded-xl bg-[#0e1424] border border-brand-border text-white text-sm focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition">
+        </div>
+        <div>
+          <label class="block text-xs font-semibold text-slate-300 mb-1.5">Password</label>
+          <input type="password" id="login-password" required placeholder="••••••••" class="w-full px-3.5 py-2.5 rounded-xl bg-[#0e1424] border border-brand-border text-white text-sm focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition">
+        </div>
+        <button type="submit" class="w-full py-3 rounded-xl bg-gradient-to-r from-indigo-600 to-indigo-500 hover:from-indigo-500 hover:to-indigo-400 font-bold text-sm text-white shadow-lg shadow-indigo-600/30 transition transform active:scale-[0.99]">
+          Enter Arena ⚡
+        </button>
+      </form>
+
+      <!-- Register Form -->
+      <form id="register-form" onsubmit="handleRegister(event)" class="space-y-3.5 hidden">
+        <div>
+          <label class="block text-xs font-semibold text-slate-300 mb-1">Invite Code</label>
+          <input type="text" id="reg-invite" required placeholder="INVITE-XXXXXX" class="w-full px-3.5 py-2.5 rounded-xl bg-[#0e1424] border border-brand-border text-white text-sm uppercase tracking-wider font-mono focus:outline-none focus:border-emerald-500 transition">
+        </div>
+        <div>
+          <label class="block text-xs font-semibold text-slate-300 mb-1">Display Username</label>
+          <input type="text" id="reg-username" required placeholder="EnergySniper" class="w-full px-3.5 py-2.5 rounded-xl bg-[#0e1424] border border-brand-border text-white text-sm focus:outline-none focus:border-emerald-500 transition">
+        </div>
+        <div>
+          <label class="block text-xs font-semibold text-slate-300 mb-1">Email</label>
+          <input type="email" id="reg-email" required placeholder="sniper@example.com" class="w-full px-3.5 py-2.5 rounded-xl bg-[#0e1424] border border-brand-border text-white text-sm focus:outline-none focus:border-emerald-500 transition">
+        </div>
+        <div>
+          <label class="block text-xs font-semibold text-slate-300 mb-1">Password</label>
+          <input type="password" id="reg-password" required placeholder="••••••••" class="w-full px-3.5 py-2.5 rounded-xl bg-[#0e1424] border border-brand-border text-white text-sm focus:outline-none focus:border-emerald-500 transition">
+        </div>
+        <div class="p-2.5 rounded-lg bg-emerald-500/10 border border-emerald-500/20 text-[11px] text-emerald-300 flex items-center gap-2">
+          <span>🎁</span>
+          <span>You will receive <strong>30 free coins</strong> upon registration!</span>
+        </div>
+        <button type="submit" class="w-full py-3 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-500 hover:from-emerald-500 hover:to-teal-400 font-bold text-sm text-white shadow-lg shadow-emerald-600/30 transition transform active:scale-[0.99]">
+          Claim 30 Coins & Register 🪙
+        </button>
+      </form>
+    </div>
+
+    <!-- ======================================================== -->
+    <!-- MAIN APP DASHBOARD -->
+    <!-- ======================================================== -->
+    <div id="app-dashboard" class="space-y-6 hidden">
+      
+      <!-- SLEEK TAB NAVIGATION (Image 2 style segmented pills) -->
+      <div class="flex items-center justify-between flex-wrap gap-3 pb-2 border-b border-brand-border/60">
+        <nav class="flex items-center gap-1.5 p-1 rounded-2xl bg-brand-card/90 border border-brand-border">
+          <button id="nav-bidding" onclick="switchAppTab('bidding')" class="px-4 py-2 rounded-xl text-xs font-bold text-white bg-gradient-to-r from-indigo-600 to-indigo-500 shadow-md shadow-indigo-600/20 transition flex items-center gap-2">
+            <span>⚡</span>
+            <span>Today's Arena</span>
+          </button>
+          <button id="nav-leaderboard" onclick="switchAppTab('leaderboard')" class="px-4 py-2 rounded-xl text-xs font-bold text-slate-400 hover:text-white transition flex items-center gap-2">
+            <span>🏆</span>
+            <span>Podium & Ranks</span>
+          </button>
+          <button id="nav-settlement" onclick="switchAppTab('settlement')" class="px-4 py-2 rounded-xl text-xs font-bold text-slate-400 hover:text-white transition flex items-center gap-2">
+            <span>🪙</span>
+            <span>Coins & Settlement</span>
+          </button>
+          <button id="nav-invites" onclick="switchAppTab('invites')" class="px-4 py-2 rounded-xl text-xs font-bold text-slate-400 hover:text-white transition flex items-center gap-2">
+            <span>🔑</span>
+            <span>Invites</span>
+          </button>
+        </nav>
+
+        <!-- Right side of navigation: Best Sniper, Available Coins, and Avatar Menu -->
+        <div class="flex items-center gap-2 sm:gap-3 text-xs">
+          <!-- Best Sniper Ticker -->
+          <span class="hidden sm:flex items-center gap-1 bg-slate-800/40 px-2.5 py-1.5 rounded-xl border border-slate-700/40 text-slate-400 font-medium">
+            <span>🎯 Best Sniper:</span>
+            <strong id="ticker-best-sniper" class="text-emerald-400 font-mono">--</strong>
+          </span>
+
+          <!-- Available Coins (Replaced Coin Leader with Available Coins!) -->
+          <div class="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-gradient-to-r from-amber-500/20 to-yellow-500/10 border border-amber-500/40 text-amber-300 font-display font-bold shadow-sm" title="Your Available Coins">
+            <span class="text-sm">🪙</span>
+            <span id="header-user-coins">30</span>
+            <span class="text-[10px] text-amber-400/80 font-normal">Coins</span>
+          </div>
+
+          <!-- Avatar with Dropdown Menu next to Available Coins -->
+          <div id="user-header-info" class="relative">
+            <button onclick="toggleUserMenu(event)" id="user-menu-btn" class="flex items-center gap-2 bg-brand-card hover:bg-brand-card2 border border-brand-border hover:border-slate-500 rounded-xl py-1 px-2.5 transition shadow-sm focus:outline-none cursor-pointer">
+              <img id="header-avatar" src="" alt="Avatar" class="w-6 h-6 rounded-full bg-slate-800 border border-indigo-500/40 object-cover">
+              <span id="user-display-name" class="font-display font-bold text-xs text-white max-w-[100px] truncate">...</span>
+              <span class="text-slate-400 text-[10px] ml-0.5">▼</span>
+            </button>
+
+            <!-- Dropdown Menu Strictly Below Avatar -->
+            <div id="user-dropdown-menu" class="hidden absolute right-0 top-full mt-2 w-48 glass-card rounded-2xl border border-brand-border shadow-2xl py-2 z-50">
+              <div class="py-1">
+                <button onclick="exportToCSV(); toggleUserMenu(false);" class="w-full px-3.5 py-2 text-left text-xs text-slate-300 hover:text-white hover:bg-slate-800/60 flex items-center gap-2.5 transition">
+                  <span class="text-sm">📊</span>
+                  <span class="font-semibold">Export Data (CSV)</span>
+                </button>
+                <button onclick="toggleRulesModal(true); toggleUserMenu(false);" class="w-full px-3.5 py-2 text-left text-xs text-slate-300 hover:text-white hover:bg-slate-800/60 flex items-center gap-2.5 transition">
+                  <span class="text-sm">ℹ️</span>
+                  <span class="font-semibold">Game Rules</span>
+                </button>
+              </div>
+
+              <div class="border-t border-brand-border/60 pt-1">
+                <button onclick="handleLogout()" class="w-full px-3.5 py-2 text-left text-xs text-red-400 hover:text-red-300 hover:bg-red-500/10 flex items-center gap-2.5 transition">
+                  <span class="text-sm">🚪</span>
+                  <span class="font-semibold">Log Out</span>
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ======================================================== -->
+      <!-- TAB 1: DAILY ARENA (PREDICTION DETAILS - Image 2 Inspired) -->
+      <!-- ======================================================== -->
+      <div id="tab-content-bidding" class="space-y-6">
+        
+        <!-- WARNING BANNER FOR NON-TOMORROW SELECTION -->
+        <div id="date-warning-banner" class="hidden rounded-xl bg-amber-500/15 border border-amber-500/40 text-amber-200 px-4 py-3 text-xs font-bold flex items-center justify-between gap-2 shadow-lg">
+          <div class="flex items-center gap-2">
+            <span class="text-lg">⚠️</span>
+            <span>Viewing past or future target date: <strong id="warning-date-label" class="underline font-mono"></strong> (Default active market is Tomorrow).</span>
+          </div>
+          <button onclick="resetDateToTomorrow()" class="px-2.5 py-1 rounded-lg bg-amber-500 text-slate-950 font-bold hover:bg-amber-400 transition text-[11px]">
+            Back to Tomorrow
+          </button>
+        </div>
+
+        <!-- MAIN MATCH / MARKET CARD (Dark Polished Arena Banner) -->
+        <div class="glass-card rounded-3xl p-5 sm:p-7 border border-brand-border relative overflow-hidden space-y-6">
+          
+          <!-- Background accent glow -->
+          <div class="absolute -top-32 right-1/4 w-80 h-80 bg-indigo-600/15 rounded-full blur-3xl pointer-events-none"></div>
+
+          <!-- Market Header Bar -->
+          <div class="flex flex-wrap items-center justify-between gap-4 border-b border-brand-border/60 pb-5">
+            <div>
+              <h2 class="font-display font-extrabold text-2xl sm:text-3xl text-white tracking-tight flex items-center gap-2 mt-0.5">
+                <span>HUPX Day-Ahead Delivery</span>
+              </h2>
+              <p class="text-xs text-slate-400 mt-1">
+                Target Date: <span id="market-display-date" class="font-bold text-slate-200"></span>
+              </p>
+            </div>
+
+            <!-- Date Selector Controls -->
+            <div class="flex items-center gap-2 bg-[#0c101c] p-1.5 rounded-2xl border border-brand-border">
+              <button onclick="quickShiftDate(-1)" title="Previous Day" class="px-2.5 py-1.5 rounded-xl hover:bg-slate-800 text-slate-300 font-bold text-xs transition">◀</button>
+              <input type="date" id="common-date" onchange="handleDateChange()" class="bg-transparent text-white font-mono font-bold text-xs px-2 py-1 focus:outline-none">
+              <button onclick="quickShiftDate(1)" title="Next Day" class="px-2.5 py-1.5 rounded-xl hover:bg-slate-800 text-slate-300 font-bold text-xs transition">▶</button>
+              <button onclick="resetDateToTomorrow()" class="px-3 py-1 rounded-xl bg-indigo-600/30 border border-indigo-500/40 text-indigo-300 hover:bg-indigo-600 hover:text-white font-bold text-xs transition">Tomorrow</button>
+            </div>
+          </div>
+
+          <!-- MATCH ARENA SCOREBOARD & COUNTDOWN CLOCK -->
+          <div class="grid grid-cols-1 lg:grid-cols-12 gap-6 items-center">
+            
+            <!-- Left Side: Market Duel / Pot Breakdown (Cols 7) -->
+            <div class="lg:col-span-7 grid grid-cols-2 gap-4 p-4 rounded-2xl bg-[#0d1222]/80 border border-brand-border/80 items-center text-center">
+              
+              <!-- Market Entity 1: Benchmark / Market -->
+              <div class="flex flex-col items-center space-y-1.5">
+                <div class="w-14 h-14 sm:w-16 sm:h-16 rounded-2xl bg-gradient-to-tr from-red-500/20 via-white/10 to-emerald-500/20 border border-brand-border flex items-center justify-center shadow-lg overflow-hidden">
+                  <svg class="w-10 h-7 rounded-md shadow-sm border border-white/20" viewBox="0 0 60 40">
+                    <rect width="60" height="13.33" fill="#CE2939"/>
+                    <rect y="13.33" width="60" height="13.33" fill="#FFFFFF"/>
+                    <rect y="26.66" width="60" height="13.34" fill="#477050"/>
+                  </svg>
+                </div>
+                <div class="font-display font-bold text-xs sm:text-sm text-white flex items-center gap-1.5">
+                  <span>HUPX Spot</span>
+                  <span class="text-xs">🇭🇺</span>
+                </div>
+                <div id="market-actual-pill" class="text-[11px] font-mono px-2 py-0.5 rounded-full bg-slate-800 text-slate-400 border border-slate-700">
+                  Awaiting Price
+                </div>
+              </div>
+
+              <!-- Center: Pot / Status Badge -->
+              <div class="flex flex-col items-center space-y-2">
+                <div id="market-status-pill" class="px-3 py-1 rounded-full text-[11px] font-extrabold uppercase tracking-wider bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 flex items-center gap-1.5">
+                  <span class="w-2 h-2 rounded-full bg-emerald-400 animate-ping"></span>
+                  <span>Bidding Open</span>
+                </div>
+                <div class="text-slate-400 text-[10px] uppercase font-bold tracking-wider">Total Daily Pot</div>
+                <div class="font-display font-extrabold text-2xl sm:text-3xl text-amber-300 flex items-center justify-center gap-1">
+                  <span>🪙</span>
+                  <span id="arena-pot-count">0</span>
+                </div>
+                <div class="text-[11px] text-slate-400" id="arena-bidders-count">0 Players in arena</div>
+              </div>
+
+            </div>
+
+            <!-- Right Side: COOL ANIMATED COUNTDOWN TIMER (Cols 5) -->
+            <div class="lg:col-span-5 p-4 rounded-2xl bg-[#0d1222]/80 border border-brand-border/80 flex flex-col items-center justify-center space-y-3 relative overflow-hidden">
+              <div class="flex items-center justify-between w-full text-[11px] text-slate-400 font-bold uppercase tracking-wider">
+                <span class="flex items-center gap-1.5">
+                  <span id="countdown-status-dot" class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
+                  <span id="countdown-heading">Time Remaining To Bid</span>
+                </span>
+                <span class="text-slate-400 font-mono text-[10px]">11:00 AM GREEK TIME</span>
+              </div>
+
+              <!-- Digit Boxes with Neon Glow -->
+              <div class="flex items-center justify-center gap-2 sm:gap-3 py-1">
+                <!-- Hours -->
+                <div class="flex flex-col items-center">
+                  <div class="w-14 h-14 sm:w-16 sm:h-16 rounded-2xl bg-[#141b2d] border border-brand-border flex items-center justify-center font-display font-extrabold text-2xl sm:text-3xl text-white shadow-inner">
+                    <span id="cd-hours">00</span>
+                  </div>
+                  <span class="text-[9px] uppercase font-bold text-slate-400 mt-1">Hours</span>
+                </div>
+                
+                <span class="font-extrabold text-xl text-slate-500 mb-4">:</span>
+
+                <!-- Minutes -->
+                <div class="flex flex-col items-center">
+                  <div class="w-14 h-14 sm:w-16 sm:h-16 rounded-2xl bg-[#141b2d] border border-brand-border flex items-center justify-center font-display font-extrabold text-2xl sm:text-3xl text-white shadow-inner">
+                    <span id="cd-mins">00</span>
+                  </div>
+                  <span class="text-[9px] uppercase font-bold text-slate-400 mt-1">Mins</span>
+                </div>
+
+                <span class="font-extrabold text-xl text-slate-500 mb-4">:</span>
+
+                <!-- Seconds (Animated Pulse) -->
+                <div class="flex flex-col items-center">
+                  <div class="w-14 h-14 sm:w-16 sm:h-16 rounded-2xl bg-[#141b2d] border border-indigo-500/50 flex items-center justify-center font-display font-extrabold text-2xl sm:text-3xl text-indigo-400 shadow-inner tick-pulse">
+                    <span id="cd-secs">00</span>
+                  </div>
+                  <span class="text-[9px] uppercase font-bold text-indigo-400 mt-1">Secs</span>
+                </div>
+              </div>
+
+              <!-- Progress / Status Footer -->
+              <div id="countdown-subtext" class="text-[11px] text-slate-400 text-center font-medium">
+                Predictions lock 24 hours prior to power dispatch.
+              </div>
+            </div>
+
+          </div>
+
+          <!-- "YOU HAVE PLACED" CARD (Directly styled like Image 2!) -->
+          <div id="user-prediction-container" class="rounded-2xl p-5 border transition-all">
+            <!-- Will be dynamically populated by loadDateData(): shows either bidding input or placed bet card with starry badge -->
+          </div>
+
+        </div>
+
+        <!-- 2-COLUMN SECTION: LIVE COMMUNITY BETS (Image 2 style) + SETTLE ACTUALS PANEL -->
+        <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
+          
+          <!-- Column 8: Community Bets Stream (Image 2 bottom list style) -->
+          <div class="lg:col-span-8 space-y-3">
+            <div class="flex items-center justify-between">
+              <div class="flex items-center gap-2">
+                <span class="text-lg">🔥</span>
+                <h3 class="font-display font-bold text-lg text-white">Bids Placed For <span id="selected-date-label"></span></h3>
+              </div>
+              <span id="bids-count-tag" class="text-xs px-2.5 py-1 rounded-full bg-slate-800 text-slate-300 border border-slate-700">0 Bids</span>
+            </div>
+
+            <!-- Bids Stream List -->
+            <div id="community-bids-list" class="space-y-2.5">
+              <!-- Dynamically populated rows styled as sleek cards -->
+            </div>
+          </div>
+
+          <!-- Column 4: Settle Actual HUPX Price & Admin Station -->
+          <div class="lg:col-span-4 space-y-4">
+            <div class="glass-card rounded-2xl p-5 border border-brand-border space-y-4">
+              <div class="flex items-center gap-2 border-b border-brand-border pb-3">
+                <span class="text-lg">⚖️</span>
+                <h3 class="font-display font-bold text-sm text-white">Settle Official HUPX Price</h3>
+              </div>
+
+              <p class="text-xs text-slate-400 leading-relaxed">
+                When daily HUPX results are published, enter the final average price (€/MWh) for <span id="actual-date-label" class="text-indigo-400 font-mono font-bold"></span>.
+              </p>
+
+              <div class="space-y-3">
+                <div>
+                  <label class="block text-xs font-semibold text-slate-300 mb-1">Final Settlement Price (€/MWh):</label>
+                  <div class="relative">
+                    <input type="number" step="0.01" id="actual-price" placeholder="e.g. 84.20" class="w-full px-3.5 py-2.5 rounded-xl bg-[#0c101c] border border-brand-border text-white font-mono text-sm focus:outline-none focus:border-emerald-500">
+                    <span class="absolute right-3.5 top-2.5 text-xs text-slate-400 font-mono">EUR</span>
+                  </div>
+                </div>
+
+                <button onclick="submitActualPrice()" class="w-full py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs shadow-lg shadow-emerald-600/20 transition flex items-center justify-center gap-2">
+                  <span>✓</span>
+                  <span>Set / Update Actual Price</span>
+                </button>
+              </div>
+
+              <div id="settlement-status-badge" class="p-2.5 rounded-xl bg-slate-800/40 border border-slate-700/50 text-xs text-slate-400 flex items-center gap-2">
+                <span>ℹ️</span>
+                <span id="settlement-status-text">Price pending for this date.</span>
+              </div>
+            </div>
+          </div>
+
+        </div>
+
+      </div>
+
+      <!-- ======================================================== -->
+      <!-- TAB 2: PODIUM LEADERBOARD (Directly matching Image 1!) -->
+      <!-- ======================================================== -->
+      <div id="tab-content-leaderboard" class="space-y-6 hidden">
+        
+        <!-- Podium Hero Section with Sunburst -->
+        <div class="glass-card rounded-3xl p-6 sm:p-8 border border-brand-border relative overflow-hidden space-y-6">
+          
+          <!-- Sunburst background rays effect -->
+          <div class="absolute inset-0 podium-sunburst pointer-events-none opacity-40"></div>
+          <div class="absolute top-0 left-1/2 -translate-x-1/2 w-96 h-96 bg-indigo-600/10 rounded-full blur-3xl pointer-events-none"></div>
+
+          <!-- Leaderboard Header & Filter Pills -->
+          <div class="relative flex flex-wrap items-center justify-between gap-4 border-b border-brand-border/60 pb-4">
+            <div>
+              <h2 class="font-display font-extrabold text-2xl sm:text-3xl text-white tracking-tight flex items-center gap-2">
+                <span>Leaderboard</span>
+              </h2>
+              <p class="text-xs text-slate-400 mt-0.5">Top energy traders ranked by coin profits & sniper accuracy</p>
+            </div>
+
+            <!-- Mode Switchers (Coins vs MAE & Current Month vs All-Time) -->
+            <div class="flex items-center flex-wrap gap-2">
+              <div class="flex p-1 bg-[#0c101c] rounded-xl border border-brand-border text-xs">
+                <button id="lb-sort-coins" onclick="setLeaderboardSort('coins')" class="px-3 py-1.5 rounded-lg font-bold text-white bg-indigo-600 transition">
+                  🪙 Coins
+                </button>
+                <button id="lb-sort-mae" onclick="setLeaderboardSort('mae')" class="px-3 py-1.5 rounded-lg font-bold text-slate-400 hover:text-white transition">
+                  🎯 Accuracy (MAE)
+                </button>
+              </div>
+
+              <div class="flex p-1 bg-[#0c101c] rounded-xl border border-brand-border text-xs">
+                <button id="lb-period-month" onclick="setLeaderboardPeriod('month')" class="px-3 py-1.5 rounded-lg font-bold text-white bg-slate-800 transition">
+                  Month
+                </button>
+                <button id="lb-period-all" onclick="setLeaderboardPeriod('all')" class="px-3 py-1.5 rounded-lg font-bold text-slate-400 hover:text-white transition">
+                  All-Time
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <!-- 3-STEP PODIUM (Exact layout of Image 1: #2 on left, #1 in center, #3 on right) -->
+          <div class="relative pt-6 pb-2">
+            <div id="podium-container" class="flex items-end justify-center max-w-lg mx-auto gap-3 sm:gap-6 min-h-[280px]">
+              <!-- Dynamically populated podium elements -->
+            </div>
+          </div>
+
+          <!-- RANKED LIST FOR #4 AND BELOW (Image 1 style rows) -->
+          <div class="relative space-y-3 pt-4 border-t border-brand-border/60">
+            <h3 class="font-display font-bold text-sm text-slate-300">Contenders (#4 & Below)</h3>
+            <div id="leaderboard-ranked-list" class="space-y-2">
+              <!-- Dynamically populated cards with #Rank, Avatar, Name, Score Pill, and Trend Arrow -->
+            </div>
+          </div>
+
+        </div>
+
+      </div>
+
+      <!-- ======================================================== -->
+      <!-- TAB 3: COIN WALLET & FINANCIAL SETTLEMENTS -->
+      <!-- ======================================================== -->
+      <div id="tab-content-settlement" class="space-y-6 hidden">
+        
+        <!-- Summary Cards Grid -->
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+          
+          <div class="glass-card rounded-2xl p-5 border border-brand-border space-y-1">
+            <div class="text-xs text-slate-400 font-semibold uppercase tracking-wider flex items-center justify-between">
+              <span>Your Coins</span>
+              <span>🪙</span>
+            </div>
+            <div id="wallet-card-coins" class="font-display font-extrabold text-3xl text-amber-300">30</div>
+            <p class="text-[11px] text-slate-400">Starting balance: 30 Coins</p>
+          </div>
+
+          <div class="glass-card rounded-2xl p-5 border border-brand-border space-y-1">
+            <div class="text-xs text-slate-400 font-semibold uppercase tracking-wider flex items-center justify-between">
+              <span>Money Won</span>
+              <span>📈</span>
+            </div>
+            <div id="wallet-card-won" class="font-display font-extrabold text-3xl text-emerald-400">+0 🪙</div>
+            <p class="text-[11px] text-slate-400">Winnings from won pots</p>
+          </div>
+
+          <div class="glass-card rounded-2xl p-5 border border-brand-border space-y-1">
+            <div class="text-xs text-slate-400 font-semibold uppercase tracking-wider flex items-center justify-between">
+              <span>Money Lost</span>
+              <span>📉</span>
+            </div>
+            <div id="wallet-card-lost" class="font-display font-extrabold text-3xl text-red-400">-0 🪙</div>
+            <p class="text-[11px] text-slate-400">Stakes lost on settled days</p>
+          </div>
+
+          <div class="glass-card rounded-2xl p-5 border border-brand-border space-y-1">
+            <div class="text-xs text-slate-400 font-semibold uppercase tracking-wider flex items-center justify-between">
+              <span>Net Euro Balance</span>
+              <span>💶</span>
+            </div>
+            <div id="wallet-card-net" class="font-display font-extrabold text-3xl text-white">€0.00</div>
+            <p class="text-[11px] text-slate-400">1 Coin = €1.00 Value</p>
+          </div>
+
+        </div>
+
+        <!-- Period Filter -->
+        <div class="flex items-center justify-between flex-wrap gap-4 glass-card p-4 rounded-2xl border border-brand-border">
+          <div class="flex items-center gap-2 text-xs font-semibold text-slate-300">
+            <span>Filter Settlement Period:</span>
+            <select id="settlement-month-filter" onchange="loadAnalyticsAndSettlements()" class="px-3 py-1.5 rounded-xl bg-[#0c101c] border border-brand-border text-white font-bold text-xs focus:outline-none">
+              <!-- Options populated dynamically -->
+            </select>
+          </div>
+
+          <span class="text-xs text-slate-400">
+            Strict Zero-Sum: Charges apply only when a bid is within &lt; €10.00
+          </span>
+        </div>
+
+        <!-- Two Columns: Net Balances & Debt Netting Transfers -->
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          
+          <!-- Column 1: Net Balances Table -->
+          <div class="glass-card rounded-2xl p-5 border border-brand-border space-y-3">
+            <h3 class="font-display font-bold text-sm text-white flex items-center gap-2">
+              <span>👥</span>
+              <span>All Players Credit Ledger</span>
+            </h3>
+            <div class="overflow-x-auto">
+              <table class="w-full text-left text-xs">
+                <thead>
+                  <tr class="border-b border-brand-border text-slate-400">
+                    <th class="py-2 px-2">Player</th>
+                    <th class="py-2 px-2">Total Coins</th>
+                    <th class="py-2 px-2">Won</th>
+                    <th class="py-2 px-2">Lost</th>
+                    <th class="py-2 px-2 text-right">Net Euro</th>
+                  </tr>
+                </thead>
+                <tbody id="settlement-table-body" class="divide-y divide-brand-border/40">
+                  <!-- Populated dynamically -->
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          <!-- Column 2: Payment Transfers (Who pays whom) -->
+          <div class="glass-card rounded-2xl p-5 border border-brand-border space-y-3">
+            <h3 class="font-display font-bold text-sm text-white flex items-center gap-2">
+              <span>💸</span>
+              <span>Optimal Debt Clearing (Who pays whom)</span>
+            </h3>
+            <p class="text-xs text-slate-400">
+              Zero-sum settlement routing to settle debts with the minimum number of payments:
+            </p>
+            <ul id="payments-list" class="space-y-2 text-xs font-mono p-3 rounded-xl bg-[#0c101c] border border-brand-border">
+              <li class="text-slate-500">Calculating transfers...</li>
+            </ul>
+          </div>
+
+        </div>
+
+        <!-- Daily Breakdown Matrix -->
+        <div class="glass-card rounded-2xl p-5 border border-brand-border space-y-3">
+          <h3 class="font-display font-bold text-sm text-white flex items-center gap-2">
+            <span>📅</span>
+            <span>Historical Daily Breakdown & Net Results</span>
+          </h3>
+          <div class="overflow-x-auto max-h-96">
+            <table class="w-full text-left text-xs">
+              <thead class="sticky top-0 bg-brand-card">
+                <tr class="border-b border-brand-border text-slate-400">
+                  <th class="py-2.5 px-3">Date</th>
+                  <th class="py-2.5 px-3">Actual HUPX</th>
+                  <th class="py-2.5 px-3">Player</th>
+                  <th class="py-2.5 px-3">Bid Value</th>
+                  <th class="py-2.5 px-3 text-right">Daily Result</th>
+                </tr>
+              </thead>
+              <tbody id="daily-breakdown-body" class="divide-y divide-brand-border/40 font-mono">
+                <!-- Dynamically populated -->
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+      </div>
+
+      <!-- ======================================================== -->
+      <!-- TAB 4: MANAGE INVITES -->
+      <!-- ======================================================== -->
+      <div id="tab-content-invites" class="space-y-6 hidden">
+        
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+          <div class="md:col-span-1 glass-card rounded-2xl p-5 border border-brand-border space-y-4">
+            <div class="flex items-center gap-2 border-b border-brand-border pb-3">
+              <span class="text-lg">🔑</span>
+              <h3 class="font-display font-bold text-sm text-white">Generate Invite Code</h3>
+            </div>
+            <p class="text-xs text-slate-400 leading-relaxed">
+              Invite your colleagues or friends to join the energy bidding pool. Each code grants 1 new user access with 30 starter coins.
+            </p>
+            <button onclick="generateInviteCode()" class="w-full py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-xs shadow-lg shadow-indigo-600/20 transition flex items-center justify-center gap-2">
+              <span>+</span>
+              <span>Generate New Code</span>
+            </button>
+            <div id="new-invite-result" class="text-xs font-mono p-3 bg-indigo-500/10 border border-indigo-500/30 text-indigo-300 rounded-xl hidden"></div>
+          </div>
+
+          <div class="md:col-span-2 glass-card rounded-2xl p-5 border border-brand-border space-y-3">
+            <h3 class="font-display font-bold text-sm text-white">Active & Used Invite Codes</h3>
+            <div class="overflow-x-auto">
+              <table class="w-full text-left text-xs">
+                <thead>
+                  <tr class="border-b border-brand-border text-slate-400">
+                    <th class="py-2 px-3">Invite Code</th>
+                    <th class="py-2 px-3">Status</th>
+                    <th class="py-2 px-3">Claimed By</th>
+                    <th class="py-2 px-3 text-right">Action</th>
+                  </tr>
+                </thead>
+                <tbody id="invites-table-body" class="divide-y divide-brand-border/40">
+                  <!-- Populated dynamically -->
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+
+      </div>
+
+    </div>
+
+  </main>
+
+
+
+  <!-- ======================================================== -->
+  <!-- APPLICATION SCRIPTS -->
+  <!-- ======================================================== -->
   <script>
     // -------------------------------------------------------------
-    // FIREBASE CONFIGURATION
+    // FIREBASE CONFIGURATION (PRESERVED EXACTLY)
     // -------------------------------------------------------------
     const firebaseConfig = {
       apiKey: "AIzaSyC-98ixBhOkp0-9sh64Rl0AJ233PIJcFCs",
@@ -282,6 +783,18 @@
     let usersMap = {};
     let timerInterval = null;
 
+    // Leaderboard display preferences
+    let lbSort = 'coins'; // 'coins' or 'mae'
+    let lbPeriod = 'all'; // 'month' or 'all'
+    let cachedMonthlyStats = {};
+    let cachedUserStats = {};
+
+    // Helper: generate avatar URL for a username
+    function getAvatarUrl(username) {
+      const cleanSeed = encodeURIComponent(username || 'trader');
+      return `https://api.dicebear.com/7.x/bottts/svg?seed=${cleanSeed}&backgroundColor=transparent`;
+    }
+
     function getTomorrowStr() {
       const tomorrow = new Date();
       tomorrow.setDate(tomorrow.getDate() + 1);
@@ -290,130 +803,119 @@
 
     document.getElementById('common-date').value = getTomorrowStr();
 
+    function resetDateToTomorrow() {
+      document.getElementById('common-date').value = getTomorrowStr();
+      handleDateChange();
+    }
+
+    function quickShiftDate(days) {
+      const current = document.getElementById('common-date').value;
+      const d = new Date(current || getTomorrowStr());
+      d.setDate(d.getDate() + days);
+      document.getElementById('common-date').value = d.toISOString().split('T')[0];
+      handleDateChange();
+    }
+
+    function toggleRulesModal(show) {
+      const modal = document.getElementById('rules-modal');
+      if (show) modal.classList.remove('hidden');
+      else modal.classList.add('hidden');
+    }
+
+    function toggleUserMenu(show) {
+      const menu = document.getElementById('user-dropdown-menu');
+      if (!menu) return;
+      if (typeof show === 'boolean') {
+        if (show) menu.classList.remove('hidden');
+        else menu.classList.add('hidden');
+      } else {
+        menu.classList.toggle('hidden');
+      }
+    }
+
+    // Close user dropdown when clicking outside
+    document.addEventListener('click', (e) => {
+      const container = document.getElementById('user-header-info');
+      const menu = document.getElementById('user-dropdown-menu');
+      if (container && menu && !container.contains(e.target)) {
+        menu.classList.add('hidden');
+      }
+    });
+
     // -------------------------------------------------------------
-    // TOAST NOTIFICATIONS
+    // TOAST NOTIFICATIONS (Polished dark theme)
     // -------------------------------------------------------------
     function showToast(message, type = 'info') {
       const container = document.getElementById('toast-container');
       const toast = document.createElement('div');
       
-      let bgColors = type === 'error' ? 'bg-red-600 text-white' : type === 'success' ? 'bg-emerald-600 text-white' : 'bg-slate-800 text-white';
-      toast.className = `${bgColors} px-4 py-3 rounded shadow-lg text-xs font-medium transition-all duration-300 opacity-0 transform translate-y-2 flex justify-between items-center`;
-      toast.innerHTML = `<span>${message}</span><button onclick="this.parentElement.remove()" class="ml-2 font-bold opacity-75 hover:opacity-100">&times;</button>`;
+      let bgColors = 'bg-slate-900/95 border border-slate-700 text-slate-200';
+      let icon = 'ℹ️';
+      if (type === 'error') {
+        bgColors = 'bg-red-950/95 border border-red-500/50 text-red-200';
+        icon = '⚠️';
+      } else if (type === 'success') {
+        bgColors = 'bg-emerald-950/95 border border-emerald-500/50 text-emerald-200';
+        icon = '✨';
+      }
+
+      toast.className = `${bgColors} px-4 py-3 rounded-2xl shadow-2xl backdrop-blur-md text-xs font-semibold transition-all duration-300 opacity-0 transform translate-y-3 flex items-center justify-between gap-3 pointer-events-auto`;
+      toast.innerHTML = `
+        <div class="flex items-center gap-2">
+          <span>${icon}</span>
+          <span>${message}</span>
+        </div>
+        <button onclick="this.parentElement.remove()" class="text-slate-400 hover:text-white font-bold ml-2 text-base leading-none">&times;</button>
+      `;
       
       container.appendChild(toast);
-      setTimeout(() => toast.classList.remove('opacity-0', 'translate-y-2'), 10);
+      setTimeout(() => toast.classList.remove('opacity-0', 'translate-y-3'), 10);
 
       setTimeout(() => {
-        toast.classList.add('opacity-0', 'translate-y-2');
-        setTimeout(() => toast.remove(), 300);
+        toast.classList.add('opacity-0', 'translate-y-3');
+        setTimeout(() => toast.remove(), 350);
       }, 4000);
     }
 
-    // Auth Tab Switcher
+    // -------------------------------------------------------------
+    // AUTH SWITCHER & LOGIN / REGISTRATION
+    // -------------------------------------------------------------
     function switchAuthTab(tab) {
-      if(tab === 'login') {
-        document.getElementById('login-form').classList.remove('hidden');
-        document.getElementById('register-form').classList.add('hidden');
-        document.getElementById('tab-login').className = "px-4 py-2 border-b-2 border-indigo-600 font-semibold text-indigo-600";
-        document.getElementById('tab-register').className = "px-4 py-2 font-semibold text-slate-500";
+      const tabLogin = document.getElementById('tab-login');
+      const tabRegister = document.getElementById('tab-register');
+      const formLogin = document.getElementById('login-form');
+      const formRegister = document.getElementById('register-form');
+
+      if (tab === 'login') {
+        formLogin.classList.remove('hidden');
+        formRegister.classList.add('hidden');
+        tabLogin.className = "flex-1 py-2 text-xs font-bold rounded-lg transition text-white bg-indigo-600 shadow-md";
+        tabRegister.className = "flex-1 py-2 text-xs font-bold rounded-lg transition text-slate-400 hover:text-white";
       } else {
-        document.getElementById('login-form').classList.add('hidden');
-        document.getElementById('register-form').classList.remove('hidden');
-        document.getElementById('tab-register').className = "px-4 py-2 border-b-2 border-indigo-600 font-semibold text-indigo-600";
-        document.getElementById('tab-login').className = "px-4 py-2 font-semibold text-slate-500";
+        formLogin.classList.add('hidden');
+        formRegister.classList.remove('hidden');
+        tabRegister.className = "flex-1 py-2 text-xs font-bold rounded-lg transition text-white bg-indigo-600 shadow-md";
+        tabLogin.className = "flex-1 py-2 text-xs font-bold rounded-lg transition text-slate-400 hover:text-white";
       }
     }
 
-    // Main App Tab Switcher
     function switchAppTab(tabName) {
       const tabs = ['bidding', 'leaderboard', 'settlement', 'invites'];
       tabs.forEach(t => {
         const content = document.getElementById(`tab-content-${t}`);
         const nav = document.getElementById(`nav-${t}`);
-        if(t === tabName) {
+        if (t === tabName) {
           content.classList.remove('hidden');
-          nav.className = "px-3 py-1.5 font-semibold border-b-2 border-indigo-600 text-indigo-600";
+          nav.className = "px-4 py-2 rounded-xl text-xs font-bold text-white bg-gradient-to-r from-indigo-600 to-indigo-500 shadow-md shadow-indigo-600/20 transition flex items-center gap-2";
         } else {
           content.classList.add('hidden');
-          nav.className = "px-3 py-1.5 font-semibold text-slate-500";
+          nav.className = "px-4 py-2 rounded-xl text-xs font-bold text-slate-400 hover:text-white transition flex items-center gap-2";
         }
       });
-      if(tabName === 'invites') loadInvitesList();
+      if (tabName === 'invites') loadInvitesList();
+      if (tabName === 'leaderboard') renderLeaderboardView();
     }
 
-    // -------------------------------------------------------------
-    // UNIFIED DATE PICKER HANDLER
-    // -------------------------------------------------------------
-    function handleDateChange() {
-      const selectedDate = document.getElementById('common-date').value;
-      const tomorrowDate = getTomorrowStr();
-      const warningBanner = document.getElementById('date-warning-banner');
-      const warningLabel = document.getElementById('warning-date-label');
-
-      if (selectedDate !== tomorrowDate) {
-        warningLabel.innerText = selectedDate;
-        warningBanner.classList.remove('hidden');
-      } else {
-        warningBanner.classList.add('hidden');
-      }
-
-      document.getElementById('actual-date-label').innerText = selectedDate;
-      loadDateData();
-    }
-
-    // -------------------------------------------------------------
-    // DEADLINE LOGIC: BID BEFORE 11 AM GREEK TIME ON DAY BEFORE
-    // -------------------------------------------------------------
-    function getSubmissionDeadline(targetDeliveryDateStr) {
-      const targetDate = new Date(targetDeliveryDateStr + "T00:00:00Z");
-      const deadlineDate = new Date(targetDate);
-      deadlineDate.setUTCDate(deadlineDate.getUTCDate() - 1);
-      
-      const deadlineStr = deadlineDate.toISOString().split('T')[0] + "T11:00:00+03:00";
-      return new Date(deadlineStr);
-    }
-
-    function isPastDeadline(targetDeliveryDateStr) {
-      const deadline = getSubmissionDeadline(targetDeliveryDateStr);
-      const now = new Date();
-      return now > deadline;
-    }
-
-    function startCountdownTimer() {
-      if (timerInterval) clearInterval(timerInterval);
-
-      function updateTimer() {
-        const targetDateStr = document.getElementById('common-date').value;
-        if (!targetDateStr) return;
-
-        const deadline = getSubmissionDeadline(targetDateStr);
-        const now = new Date();
-        const diff = deadline - now;
-
-        const timerDisplay = document.getElementById('countdown-timer');
-        const banner = document.getElementById('countdown-banner');
-
-        if (diff <= 0) {
-          timerDisplay.innerText = "SUBMISSION CLOSED";
-          banner.className = "bg-red-100 border border-red-300 text-red-900 px-3 py-1 rounded text-xs font-mono font-bold flex items-center gap-1";
-        } else {
-          const hours = Math.floor(diff / (1000 * 60 * 60));
-          const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
-          const seconds = Math.floor((diff % (1000 * 60)) / 1000);
-
-          timerDisplay.innerText = `${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
-          banner.className = "bg-indigo-100 border border-indigo-300 text-indigo-900 px-3 py-1 rounded text-xs font-mono font-bold flex items-center gap-1";
-        }
-      }
-
-      updateTimer();
-      timerInterval = setInterval(updateTimer, 1000);
-    }
-
-    // -------------------------------------------------------------
-    // AUTHENTICATION & REGISTRATION
-    // -------------------------------------------------------------
     async function handleRegister(e) {
       e.preventDefault();
       const inviteCode = document.getElementById('reg-invite').value.trim();
@@ -447,7 +949,7 @@
           used_by_username: username 
         });
 
-        showToast('Registration successful!', 'success');
+        showToast('Registration successful! 30 Starter Coins credited.', 'success');
       } catch (err) {
         showToast('Registration failed: ' + err.message, 'error');
       }
@@ -474,10 +976,14 @@
       if (user) {
         const userDoc = await db.collection('users').doc(user.uid).get();
         currentUsername = userDoc.exists ? userDoc.data().username : user.email;
+        
         document.getElementById('user-display-name').innerText = currentUsername;
+        document.getElementById('header-avatar').src = getAvatarUrl(currentUsername);
 
         document.getElementById('auth-container').classList.add('hidden');
         document.getElementById('app-dashboard').classList.remove('hidden');
+        document.getElementById('user-header-info').classList.remove('hidden');
+        document.getElementById('user-header-info').classList.add('flex');
 
         await cacheUsers();
         handleDateChange();
@@ -485,6 +991,8 @@
       } else {
         document.getElementById('auth-container').classList.remove('hidden');
         document.getElementById('app-dashboard').classList.add('hidden');
+        document.getElementById('user-header-info').classList.add('hidden');
+        document.getElementById('user-header-info').classList.remove('flex');
       }
     });
 
@@ -496,7 +1004,104 @@
     }
 
     // -------------------------------------------------------------
-    // BID SUBMISSION & VISIBILITY CONTROL
+    // DEADLINE & ANIMATED COUNTDOWN LOGIC (11:00 AM GREEK TIME)
+    // -------------------------------------------------------------
+    function getSubmissionDeadline(targetDeliveryDateStr) {
+      const targetDate = new Date(targetDeliveryDateStr + "T00:00:00Z");
+      const deadlineDate = new Date(targetDate);
+      deadlineDate.setUTCDate(deadlineDate.getUTCDate() - 1);
+      
+      const deadlineStr = deadlineDate.toISOString().split('T')[0] + "T11:00:00+03:00";
+      return new Date(deadlineStr);
+    }
+
+    function isPastDeadline(targetDeliveryDateStr) {
+      const deadline = getSubmissionDeadline(targetDeliveryDateStr);
+      const now = new Date();
+      return now > deadline;
+    }
+
+    function startCountdownTimer() {
+      if (timerInterval) clearInterval(timerInterval);
+
+      function updateTimer() {
+        const targetDateStr = document.getElementById('common-date').value;
+        if (!targetDateStr) return;
+
+        const deadline = getSubmissionDeadline(targetDateStr);
+        const now = new Date();
+        const diff = deadline - now;
+
+        const hoursEl = document.getElementById('cd-hours');
+        const minsEl = document.getElementById('cd-mins');
+        const secsEl = document.getElementById('cd-secs');
+        const dotEl = document.getElementById('countdown-status-dot');
+        const headingEl = document.getElementById('countdown-heading');
+        const subtextEl = document.getElementById('countdown-subtext');
+
+        if (diff <= 0) {
+          hoursEl.innerText = "00";
+          minsEl.innerText = "00";
+          secsEl.innerText = "00";
+          dotEl.className = "w-2 h-2 rounded-full bg-red-500";
+          headingEl.innerText = "Bidding Closed";
+          headingEl.className = "text-red-400 font-bold";
+          subtextEl.innerText = "Deadline passed. Predictions are locked for this date.";
+          subtextEl.className = "text-[11px] text-red-400/80 text-center font-medium";
+        } else {
+          const hours = Math.floor(diff / (1000 * 60 * 60));
+          const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
+          const seconds = Math.floor((diff % (1000 * 60)) / 1000);
+
+          hoursEl.innerText = String(hours).padStart(2, '0');
+          minsEl.innerText = String(minutes).padStart(2, '0');
+          secsEl.innerText = String(seconds).padStart(2, '0');
+
+          if (hours < 2) {
+            dotEl.className = "w-2 h-2 rounded-full bg-amber-400 animate-ping";
+            headingEl.innerText = "Closing Soon!";
+            headingEl.className = "text-amber-400 font-bold";
+            subtextEl.innerText = "Less than 2 hours remaining! Submit your 1 coin bid.";
+            subtextEl.className = "text-[11px] text-amber-300 text-center font-medium";
+          } else {
+            dotEl.className = "w-2 h-2 rounded-full bg-emerald-400 animate-pulse";
+            headingEl.innerText = "Time Remaining To Bid";
+            headingEl.className = "text-slate-300 font-bold";
+            subtextEl.innerText = "Lock in your prediction before 11:00 AM Greek time.";
+            subtextEl.className = "text-[11px] text-slate-400 text-center font-medium";
+          }
+        }
+      }
+
+      updateTimer();
+      timerInterval = setInterval(updateTimer, 1000);
+    }
+
+    // -------------------------------------------------------------
+    // DATE CHANGE & VIEW CONTROLLER
+    // -------------------------------------------------------------
+    function handleDateChange() {
+      const selectedDate = document.getElementById('common-date').value;
+      const tomorrowDate = getTomorrowStr();
+      const warningBanner = document.getElementById('date-warning-banner');
+      const warningLabel = document.getElementById('warning-date-label');
+
+      if (selectedDate !== tomorrowDate) {
+        warningLabel.innerText = selectedDate;
+        warningBanner.classList.remove('hidden');
+      } else {
+        warningBanner.classList.add('hidden');
+      }
+
+      document.getElementById('market-display-date').innerText = selectedDate;
+      document.getElementById('actual-date-label').innerText = selectedDate;
+      document.getElementById('selected-date-label').innerText = selectedDate;
+
+      loadDateData();
+    }
+
+    // -------------------------------------------------------------
+    // SUBMIT BID WITH 1 COIN STAKE
     // -------------------------------------------------------------
     async function submitBid() {
       const targetDate = document.getElementById('common-date').value;
@@ -504,12 +1109,12 @@
       const price = parseFloat(priceInput.value);
 
       if (!targetDate || isNaN(price)) {
-        showToast('Please enter a valid price.', 'error');
+        showToast('Please enter a valid price (e.g. 84.50).', 'error');
         return;
       }
 
       if (isPastDeadline(targetDate)) {
-        showToast('Deadline passed! Bids for ' + targetDate + ' closed at 11:00 AM Greek time on the day before.', 'error');
+        showToast('Deadline passed! Bids closed at 11:00 AM Greek time on day before delivery.', 'error');
         return;
       }
 
@@ -517,7 +1122,14 @@
       
       const existingSnap = await db.collection('bids').doc(docId).get();
       if (existingSnap.exists) {
-        showToast('You have already submitted a bid for this date and cannot modify it.', 'error');
+        showToast('You have already placed a bid for this date and cannot modify it.', 'error');
+        return;
+      }
+
+      // Check current user coin balance
+      const currentCoins = cachedUserStats[currentUsername] ? cachedUserStats[currentUsername].coins : 30;
+      if (currentCoins < 1) {
+        showToast('Insufficient coins! You need at least 1 coin to place a bid.', 'error');
         return;
       }
 
@@ -529,88 +1141,266 @@
         submitted_at: firebase.firestore.FieldValue.serverTimestamp()
       });
 
-      showToast('Bid submitted successfully!', 'success');
+      showToast('1 Coin Staked! Prediction submitted successfully ⚡', 'success');
       loadDateData();
       loadAnalyticsAndSettlements();
     }
 
+    // -------------------------------------------------------------
+    // LOAD DATE DATA & RENDER ARENA MATCH CARDS (Image 2 style)
+    // -------------------------------------------------------------
     async function loadDateData() {
       const targetDate = document.getElementById('common-date').value;
-      document.getElementById('selected-date-label').innerText = targetDate;
       startCountdownTimer();
-      
+
       const bidsSnap = await db.collection('bids').where('target_date', '==', targetDate).get();
       const actualSnap = await db.collection('actuals').doc(targetDate).get();
-      
+
+      const actualExists = actualSnap.exists;
+      const actualPrice = actualExists ? actualSnap.data().actual_price : null;
+
       const actualInput = document.getElementById('actual-price');
-      if (actualSnap.exists) {
-        actualInput.value = actualSnap.data().actual_price;
+      const actualPill = document.getElementById('market-actual-pill');
+      const statusPill = document.getElementById('market-status-pill');
+      const settlementStatusText = document.getElementById('settlement-status-text');
+
+      if (actualExists) {
+        actualInput.value = actualPrice;
+        actualPill.innerText = `€${actualPrice.toFixed(2)} / MWh`;
+        actualPill.className = "text-xs font-mono px-3 py-1 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 font-bold";
+        statusPill.innerHTML = `<span>✓ Settled</span>`;
+        statusPill.className = "px-3 py-1 rounded-full text-[11px] font-extrabold uppercase tracking-wider bg-purple-500/20 text-purple-300 border border-purple-500/30";
+        settlementStatusText.innerHTML = `Settled at <strong class="text-emerald-400 font-mono">€${actualPrice.toFixed(2)}</strong> by ${actualSnap.data().submitted_by || 'Admin'}.`;
       } else {
         actualInput.value = '';
+        actualPill.innerText = `Awaiting Settlement`;
+        actualPill.className = "text-[11px] font-mono px-2 py-0.5 rounded-full bg-slate-800 text-slate-400 border border-slate-700";
+        
+        if (isPastDeadline(targetDate)) {
+          statusPill.innerHTML = `<span>🔒 Closed (Pending HUPX)</span>`;
+          statusPill.className = "px-3 py-1 rounded-full text-[11px] font-extrabold uppercase tracking-wider bg-amber-500/20 text-amber-300 border border-amber-500/30";
+          settlementStatusText.innerText = "Bidding locked. Awaiting official HUPX day-ahead results.";
+        } else {
+          statusPill.innerHTML = `<span class="w-2 h-2 rounded-full bg-emerald-400 animate-ping mr-1"></span><span>Bidding Open</span>`;
+          statusPill.className = "px-3 py-1 rounded-full text-[11px] font-extrabold uppercase tracking-wider bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 flex items-center";
+          settlementStatusText.innerText = "Arena open for submissions until 11:00 AM Greek time.";
+        }
       }
 
-      const actualPriceExists = actualSnap.exists;
-      const bidsTable = document.getElementById('bids-table-body');
-      
-      // CHECK IF LOGGED-IN USER HAS SUBMITTED A BID FOR THIS TARGET DATE
-      const selfBidDoc = bidsSnap.docs.find(doc => doc.data().user_id === currentUser.uid);
-      const userHasBid = !!selfBidDoc;
-      
-      const priceInput = document.getElementById('bid-price');
-      const submitBtn = document.getElementById('submit-bid-btn');
+      // Check self bid
+      const bids = bidsSnap.docs.map(d => d.data());
+      const selfBid = bids.find(b => b.user_id === currentUser.uid);
+      const userHasBid = !!selfBid;
 
-      if (userHasBid) {
-        priceInput.value = selfBidDoc.data().bid_price;
-        priceInput.disabled = true;
-        priceInput.className = "p-2 border rounded bg-slate-100 font-bold text-slate-500 cursor-not-allowed";
-        submitBtn.disabled = true;
-        submitBtn.className = "bg-slate-400 text-white px-4 py-2 rounded font-semibold cursor-not-allowed";
-        submitBtn.innerText = `Submitted (€${selfBidDoc.data().bid_price.toFixed(2)})`;
+      // Update Arena Pot count
+      document.getElementById('arena-pot-count').innerText = bids.length;
+      document.getElementById('arena-bidders-count').innerText = `${bids.length} Player${bids.length === 1 ? '' : 's'} in arena`;
+      document.getElementById('bids-count-tag').innerText = `${bids.length} Placed`;
+
+      // Render "YOU HAVE PLACED" CARD (Image 2 style)
+      renderUserPredictionCard(userHasBid, selfBid, actualExists, actualPrice, bids);
+
+      // Render COMMUNITY BIDS LIST (Image 2 style bottom list)
+      renderCommunityBidsList(bids, userHasBid, actualExists, actualPrice);
+    }
+
+    // -------------------------------------------------------------
+    // RENDER USER PREDICTION CARD (Image 2 Inspired with Star Badge)
+    // -------------------------------------------------------------
+    function renderUserPredictionCard(userHasBid, selfBid, actualExists, actualPrice, allBids) {
+      const container = document.getElementById('user-prediction-container');
+      const targetDate = document.getElementById('common-date').value;
+      const closed = isPastDeadline(targetDate);
+
+      if (!userHasBid) {
+        // Form to place a bid
+        container.className = "rounded-2xl p-5 border border-indigo-500/30 bg-gradient-to-r from-indigo-950/40 via-brand-card to-indigo-950/30";
+        container.innerHTML = `
+          <div class="flex flex-col md:flex-row md:items-center justify-between gap-4">
+            <div class="space-y-1">
+              <div class="flex items-center gap-2">
+                <span class="text-indigo-400 font-extrabold text-xs uppercase tracking-wider">Stake & Predict</span>
+                <span class="text-[10px] px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-300 border border-amber-500/30 font-bold">Cost: 1 Coin</span>
+              </div>
+              <h3 class="font-display font-bold text-lg text-white">Place Your Prediction for ${targetDate}</h3>
+              <p class="text-xs text-slate-400">Closest bid to actual HUPX price (&lt; €10 error) takes the whole pot!</p>
+            </div>
+
+            <div class="flex flex-wrap items-center gap-3">
+              <div class="relative min-w-[170px]">
+                <input type="number" step="0.01" id="bid-price" ${closed ? 'disabled' : ''} placeholder="e.g. 84.50" class="w-full px-4 py-2.5 rounded-xl bg-[#0c101c] border border-brand-border text-white font-mono font-bold text-sm focus:outline-none focus:border-indigo-500 disabled:opacity-50">
+                <span class="absolute right-3.5 top-2.5 text-xs text-slate-400 font-mono">€/MWh</span>
+              </div>
+              <button id="submit-bid-btn" onclick="submitBid()" ${closed ? 'disabled' : ''} class="px-5 py-2.5 rounded-xl bg-gradient-to-r from-indigo-600 to-indigo-500 hover:from-indigo-500 hover:to-indigo-400 text-white font-display font-bold text-xs shadow-lg shadow-indigo-600/30 transition flex items-center gap-2 disabled:opacity-40 disabled:cursor-not-allowed">
+                <span>⚡</span>
+                <span>Place Bid (1 Coin)</span>
+              </button>
+            </div>
+          </div>
+        `;
       } else {
-        priceInput.value = '';
-        priceInput.disabled = false;
-        priceInput.className = "p-2 border rounded";
-        submitBtn.disabled = false;
-        submitBtn.className = "bg-indigo-600 text-white px-4 py-2 rounded font-semibold hover:bg-indigo-700";
-        submitBtn.innerText = "Submit Bid (€1)";
-      }
+        // User has submitted a bid: Show Image 2's "You have placed" card!
+        let outcomeState = 'IN PLAY';
+        let badgeStyle = 'border-indigo-500 text-indigo-400';
+        let badgeIcon = '⏳';
+        let calloutText = 'Waiting for settlement...';
+        let calloutColor = 'text-indigo-300';
 
-      bidsTable.innerHTML = '';
-      
-      if (bidsSnap.empty) {
-        bidsTable.innerHTML = `<tr><td colspan="3" class="p-2 text-slate-400">No bids submitted yet for this date.</td></tr>`;
+        // Check if settled
+        if (actualExists) {
+          let bestDiff = Infinity;
+          let winner = null;
+
+          allBids.forEach(b => {
+            const diff = Math.abs(b.bid_price - actualPrice);
+            if (diff < bestDiff && diff < 10.0) {
+              bestDiff = diff;
+              winner = b.username;
+            }
+          });
+
+          if (winner === currentUsername) {
+            outcomeState = 'WINNER';
+            badgeStyle = 'border-amber-400 text-amber-300 shadow-lg shadow-amber-500/20 star-badge-ring';
+            badgeIcon = '👑';
+            const netReward = allBids.length - 1;
+            calloutText = `You won +${netReward} Coins! 🎉 (${allBids.length} total pot)`;
+            calloutColor = 'text-amber-300 font-bold';
+          } else if (winner !== null) {
+            outcomeState = 'MISSED';
+            badgeStyle = 'border-red-500/50 text-red-400';
+            badgeIcon = '✕';
+            calloutText = `Winner was ${winner}. You lost 1 Coin.`;
+            calloutColor = 'text-red-400';
+          } else {
+            outcomeState = 'ROLLED';
+            badgeStyle = 'border-slate-500 text-slate-400';
+            badgeIcon = '↺';
+            calloutText = 'No bid was within < €10.00. Pot rolled over / 0 deduction.';
+            calloutColor = 'text-slate-400';
+          }
+        }
+
+        container.className = "rounded-2xl p-5 border border-brand-border bg-[#0f1424] relative overflow-hidden";
+        container.innerHTML = `
+          <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+            <div class="space-y-2">
+              <div class="text-xs text-slate-400 font-semibold uppercase tracking-wider">
+                Your Prediction Placed:
+              </div>
+              <div class="font-display font-black text-2xl sm:text-3xl text-white tracking-tight flex items-baseline gap-2">
+                <span class="text-indigo-400 font-mono">€${selfBid.bid_price.toFixed(2)}</span>
+                <span class="text-xs text-slate-400 font-sans font-medium">/ MWh</span>
+              </div>
+              <div class="text-xs text-slate-400 flex items-center gap-3">
+                <span>Value: <strong class="text-slate-200">1 Coin</strong></span>
+                <span>•</span>
+                <span>Potential Reward: <strong class="text-emerald-400">+${Math.max(0, allBids.length - 1)} Coins</strong></span>
+              </div>
+              <div class="text-xs pt-1 ${calloutColor} flex items-center gap-1.5">
+                <span>${calloutText}</span>
+              </div>
+            </div>
+
+            <!-- Image 2 Golden Starry Badge -->
+            <div class="flex items-center justify-center pr-2">
+              <div class="relative w-20 h-20 rounded-full flex flex-col items-center justify-center text-center p-2 border-2 ${badgeStyle} bg-[#0b0f1c]/90">
+                <span class="text-base">${badgeIcon}</span>
+                <span class="font-display font-extrabold text-[10px] uppercase tracking-wider leading-tight">${outcomeState}</span>
+              </div>
+            </div>
+          </div>
+        `;
+      }
+    }
+
+    // -------------------------------------------------------------
+    // RENDER COMMUNITY BIDS LIST (Image 2 style bottom cards)
+    // -------------------------------------------------------------
+    function renderCommunityBidsList(bids, userHasBid, actualExists, actualPrice) {
+      const listEl = document.getElementById('community-bids-list');
+      listEl.innerHTML = '';
+
+      if (bids.length === 0) {
+        listEl.innerHTML = `
+          <div class="p-8 text-center text-slate-500 rounded-2xl border border-brand-border bg-[#0c101c]">
+            <span class="text-3xl block mb-2">⚡</span>
+            <span>No predictions placed yet for this date. Be the first to enter the arena!</span>
+          </div>
+        `;
         return;
       }
 
-      bidsSnap.forEach(doc => {
-        const data = doc.data();
-        const isSelf = data.user_id === currentUser.uid;
+      // Check winner if actual exists
+      let bestDiff = Infinity;
+      let winnerName = null;
+      if (actualExists) {
+        bids.forEach(b => {
+          const diff = Math.abs(b.bid_price - actualPrice);
+          if (diff < bestDiff && diff < 10.0) {
+            bestDiff = diff;
+            winnerName = b.username;
+          }
+        });
+      }
+
+      bids.forEach(b => {
+        const isSelf = b.user_id === currentUser.uid;
+        const isWinner = winnerName === b.username;
+
+        let displayValue = "🔒 Hidden until you bid";
+        let valueColor = "text-slate-500 font-sans italic text-xs";
         
-        // VISIBILITY RULE: HIDE OTHER BIDS UNLESS USER HAS SUBMITTED A BID FOR THIS DATE OR ACTUAL PRICE IS SET
-        let displayPrice = "Hidden until you bid";
-        if (userHasBid || isSelf || actualPriceExists) {
-          displayPrice = `€${data.bid_price.toFixed(2)}/MWh`;
+        if (userHasBid || isSelf || actualExists) {
+          displayValue = `€${b.bid_price.toFixed(2)} / MWh`;
+          valueColor = "text-white font-mono font-bold text-sm";
         }
 
-        bidsTable.innerHTML += `
-          <tr class="border-b">
-            <td class="p-2 font-medium">${data.username}</td>
-            <td class="p-2 text-xs"><span class="bg-emerald-100 text-emerald-800 px-2 py-0.5 rounded">Submitted</span></td>
-            <td class="p-2 font-mono">${displayPrice}</td>
-          </tr>
+        let cardBorder = "border-brand-border bg-[#0e1424]";
+        if (isWinner) {
+          cardBorder = "border-amber-500/50 bg-gradient-to-r from-amber-950/20 to-brand-card shadow-lg shadow-amber-500/10";
+        } else if (isSelf) {
+          cardBorder = "border-indigo-500/40 bg-[#12192e]";
+        }
+
+        listEl.innerHTML += `
+          <div class="p-3.5 rounded-2xl border ${cardBorder} flex items-center justify-between gap-4 transition hover:border-slate-600">
+            <div class="flex items-center gap-3">
+              <div class="relative">
+                <img src="${getAvatarUrl(b.username)}" alt="${b.username}" class="w-10 h-10 rounded-full bg-slate-800 border border-slate-700 object-cover">
+                ${isWinner ? '<span class="absolute -top-1.5 -right-1 text-sm">👑</span>' : ''}
+              </div>
+              <div>
+                <div class="flex items-center gap-2">
+                  <span class="font-display font-bold text-sm text-white">${b.username}</span>
+                  ${isSelf ? '<span class="text-[9px] px-1.5 py-0.2 rounded bg-indigo-500/20 text-indigo-300 border border-indigo-500/30 font-bold">YOU</span>' : ''}
+                  ${isWinner ? '<span class="text-[9px] px-1.5 py-0.2 rounded bg-amber-500/20 text-amber-300 border border-amber-500/30 font-bold">WINNER</span>' : ''}
+                </div>
+                <div class="text-[11px] text-slate-400 flex items-center gap-2 mt-0.5">
+                  <span class="text-emerald-400">● 1 Coin Staked</span>
+                  ${actualExists ? `<span class="font-mono text-slate-500">Diff: €${Math.abs(b.bid_price - actualPrice).toFixed(2)}</span>` : ''}
+                </div>
+              </div>
+            </div>
+
+            <div class="text-right">
+              <div class="${valueColor}">${displayValue}</div>
+              ${isWinner ? '<span class="text-[10px] text-amber-400 font-bold">+All Daily Coins</span>' : ''}
+            </div>
+          </div>
         `;
       });
     }
 
     // -------------------------------------------------------------
-    // SETTLE ACTUAL PRICE & ZERO-SUM ANALYTICS
+    // SUBMIT ACTUAL HUPX PRICE
     // -------------------------------------------------------------
     async function submitActualPrice() {
       const targetDate = document.getElementById('common-date').value;
       const actualPrice = parseFloat(document.getElementById('actual-price').value);
 
       if (!targetDate || isNaN(actualPrice)) {
-        showToast('Enter a valid actual price.', 'error');
+        showToast('Enter a valid actual price (e.g. 82.10).', 'error');
         return;
       }
 
@@ -620,11 +1410,14 @@
         updated_at: firebase.firestore.FieldValue.serverTimestamp()
       });
 
-      showToast(`Actual HUPX Price for ${targetDate} updated!`, 'success');
+      showToast(`Actual HUPX Price for ${targetDate} settled at €${actualPrice.toFixed(2)}!`, 'success');
       loadDateData();
       loadAnalyticsAndSettlements();
     }
 
+    // -------------------------------------------------------------
+    // ZERO-SUM ANALYTICS & CREDIT SYSTEM (START EVERY USER WITH 30 COINS)
+    // -------------------------------------------------------------
     async function loadAnalyticsAndSettlements() {
       const bidsSnap = await db.collection('bids').get();
       const actualsSnap = await db.collection('actuals').get();
@@ -636,13 +1429,12 @@
       bidsSnap.forEach(doc => globalBids.push(doc.data()));
 
       const currentMonthKey = new Date().toISOString().substring(0, 7);
-      
       const selectUI = document.getElementById('settlement-month-filter');
-      let filterMonth = selectUI.value || currentMonthKey;
+      let filterMonth = selectUI.value || 'ALL';
 
       const availableMonths = new Set([currentMonthKey]);
       globalBids.forEach(b => availableMonths.add(b.target_date.substring(0, 7)));
-      
+
       selectUI.innerHTML = '<option value="ALL">All Time</option>';
       Array.from(availableMonths).sort().reverse().forEach(m => {
         const isSelected = filterMonth === m ? 'selected' : '';
@@ -654,18 +1446,39 @@
       const userStats = {};
       const monthlyStats = {};
 
+      // Seed all known registered users with 30 coins!
+      Object.keys(usersMap).forEach(uid => {
+        const uname = usersMap[uid];
+        if (!userStats[uname]) {
+          userStats[uname] = { username: uname, bidsCount: 0, totalAE: 0, settledDaysCount: 0, wins: 0, moneyWon: 0, moneyLost: 0, netBalance: 0, coins: 30, lastTrend: 'neutral' };
+        }
+        if (!monthlyStats[uname]) {
+          monthlyStats[uname] = { username: uname, bidsCount: 0, totalAE: 0, settledDaysCount: 0, wins: 0, moneyWon: 0, moneyLost: 0, netBalance: 0, coins: 30, lastTrend: 'neutral' };
+        }
+      });
+
+      // Also ensure bidders are indexed
+      globalBids.forEach(b => {
+        if (!userStats[b.username]) {
+          userStats[b.username] = { username: b.username, bidsCount: 0, totalAE: 0, settledDaysCount: 0, wins: 0, moneyWon: 0, moneyLost: 0, netBalance: 0, coins: 30, lastTrend: 'neutral' };
+        }
+        if (!monthlyStats[b.username]) {
+          monthlyStats[b.username] = { username: b.username, bidsCount: 0, totalAE: 0, settledDaysCount: 0, wins: 0, moneyWon: 0, moneyLost: 0, netBalance: 0, coins: 30, lastTrend: 'neutral' };
+        }
+      });
+
       const bidsByDate = {};
       globalBids.forEach(data => {
         if (!bidsByDate[data.target_date]) bidsByDate[data.target_date] = [];
         bidsByDate[data.target_date].push(data);
-
-        if (!userStats[data.username]) userStats[data.username] = { bidsCount: 0, totalAE: 0, settledDaysCount: 0, wins: 0, netBalance: 0 };
-        if (!monthlyStats[data.username]) monthlyStats[data.username] = { bidsCount: 0, totalAE: 0, settledDaysCount: 0, wins: 0 };
       });
 
       const detailedBreakdown = [];
+      let bestSniperDiff = Infinity;
+      let bestSniperUser = '--';
 
-      Object.keys(bidsByDate).sort().reverse().forEach(date => {
+      // Process dates chronologically to trace trend
+      Object.keys(bidsByDate).sort().forEach(date => {
         const dateBids = bidsByDate[date];
         const actual = globalActuals[date];
         const isSelectedMonth = (filterMonth === 'ALL' || date.startsWith(filterMonth));
@@ -674,12 +1487,16 @@
         let bestDiff = Infinity;
         let winner = null;
 
-        // 1. Calculate accuracy and check if a bid is within < €10.00 threshold
         dateBids.forEach(b => {
           if (actual !== undefined) {
             const ae = Math.abs(b.bid_price - actual);
             userStats[b.username].totalAE += ae;
             userStats[b.username].settledDaysCount += 1;
+
+            if (ae < bestSniperDiff) {
+              bestSniperDiff = ae;
+              bestSniperUser = `${b.username} (€${ae.toFixed(2)})`;
+            }
 
             if (isCurrentMonth) {
               monthlyStats[b.username].totalAE += ae;
@@ -695,29 +1512,43 @@
           if (isSelectedMonth) {
             userStats[b.username].bidsCount += 1;
           }
-
           if (isCurrentMonth) {
             monthlyStats[b.username].bidsCount += 1;
           }
         });
 
-        // 2. STRICT ZERO-SUM NETTING: Apply charges ONLY when a valid winner exists
+        // ZERO-SUM NETTING & COIN CREDIT LEDGER
         if (winner && isSelectedMonth) {
+          const potWon = dateBids.length - 1; // Net gain for winner
           dateBids.forEach(b => {
             if (b.username === winner) {
               userStats[winner].wins += 1;
-              userStats[winner].netBalance += (dateBids.length - 1); // Winner claims pot minus own €1
+              userStats[winner].moneyWon += potWon;
+              userStats[winner].netBalance += potWon;
+              userStats[winner].lastTrend = 'up';
             } else {
-              userStats[b.username].netBalance -= 1; // Loser pays €1
+              userStats[b.username].moneyLost += 1;
+              userStats[b.username].netBalance -= 1;
+              userStats[b.username].lastTrend = 'down';
             }
           });
 
           if (isCurrentMonth) {
             monthlyStats[winner].wins += 1;
+            monthlyStats[winner].moneyWon += potWon;
+            monthlyStats[winner].netBalance += potWon;
+            monthlyStats[winner].lastTrend = 'up';
+            dateBids.forEach(b => {
+              if (b.username !== winner) {
+                monthlyStats[b.username].moneyLost += 1;
+                monthlyStats[b.username].netBalance -= 1;
+                monthlyStats[b.username].lastTrend = 'down';
+              }
+            });
           }
         }
 
-        // 3. Populate detailed daily breakdown table
+        // Daily breakdown
         dateBids.forEach(b => {
           let netResultText = "Pending";
           let resultColor = "text-slate-500";
@@ -725,18 +1556,18 @@
           if (actual !== undefined) {
             if (winner === b.username) {
               const netGain = dateBids.length - 1;
-              netResultText = `+€${netGain.toFixed(2)} (Winner)`;
-              resultColor = "text-emerald-600 font-bold";
+              netResultText = `+${netGain} Coins (Won Pot)`;
+              resultColor = "text-amber-400 font-bold";
             } else if (winner !== null) {
-              netResultText = `-€1.00`;
-              resultColor = "text-red-600 font-bold";
+              netResultText = `-1 Coin`;
+              resultColor = "text-red-400 font-bold";
             } else {
-              netResultText = `€0.00 (No winner <€10)`;
-              resultColor = "text-amber-600 font-bold";
+              netResultText = `0 Coins (Rolled Over)`;
+              resultColor = "text-slate-400";
             }
           }
 
-          detailedBreakdown.push({
+          detailedBreakdown.unshift({
             date,
             actual: actual !== undefined ? `€${actual.toFixed(2)}` : 'Pending',
             username: b.username,
@@ -747,79 +1578,224 @@
         });
       });
 
-      renderTables(monthlyStats, userStats, detailedBreakdown);
+      // Calculate final coins for each user: 30 + moneyWon - moneyLost
+      Object.keys(userStats).forEach(u => {
+        userStats[u].coins = 30 + userStats[u].moneyWon - userStats[u].moneyLost;
+      });
+      Object.keys(monthlyStats).forEach(u => {
+        monthlyStats[u].coins = 30 + monthlyStats[u].moneyWon - monthlyStats[u].moneyLost;
+      });
+
+      cachedUserStats = userStats;
+      cachedMonthlyStats = monthlyStats;
+
+      // Update Ticker Stats
+      const bestSniperEl = document.getElementById('ticker-best-sniper');
+      if (bestSniperEl) bestSniperEl.innerText = bestSniperUser;
+
+      const topPlayerEl = document.getElementById('ticker-top-player');
+      const sortedByCoins = Object.values(userStats).sort((a,b) => b.coins - a.coins);
+      if (topPlayerEl && sortedByCoins.length > 0) {
+        topPlayerEl.innerText = `${sortedByCoins[0].username} (${sortedByCoins[0].coins} 🪙)`;
+      }
+
+      // Update Current User Header Pill
+      if (currentUsername && userStats[currentUsername]) {
+        const selfCoins = userStats[currentUsername].coins;
+        document.getElementById('header-user-coins').innerText = selfCoins;
+        document.getElementById('wallet-card-coins').innerText = selfCoins;
+        document.getElementById('wallet-card-won').innerText = `+${userStats[currentUsername].moneyWon} 🪙`;
+        document.getElementById('wallet-card-lost').innerText = `-${userStats[currentUsername].moneyLost} 🪙`;
+        document.getElementById('wallet-card-net').innerText = `€${userStats[currentUsername].netBalance.toFixed(2)}`;
+      }
+
+      renderSettlementLedger(userStats, detailedBreakdown);
+      renderLeaderboardView();
     }
 
-    function renderTables(monthlyStats, userStats, detailedBreakdown) {
-      // Render Current Month Leaderboard
-      const monthlyBody = document.getElementById('monthly-leaderboard-body');
-      monthlyBody.innerHTML = '';
-      const sortedMonthly = Object.keys(monthlyStats).sort((a,b) => {
-        const maeA = monthlyStats[a].settledDaysCount ? (monthlyStats[a].totalAE / monthlyStats[a].settledDaysCount) : 999;
-        const maeB = monthlyStats[b].settledDaysCount ? (monthlyStats[b].totalAE / monthlyStats[b].settledDaysCount) : 999;
-        return maeA - maeB;
+    // -------------------------------------------------------------
+    // RENDER LEADERBOARD VIEW WITH IMAGE 1 PODIUM
+    // -------------------------------------------------------------
+    function setLeaderboardSort(sort) {
+      lbSort = sort;
+      document.getElementById('lb-sort-coins').className = sort === 'coins' 
+        ? "px-3 py-1.5 rounded-lg font-bold text-white bg-indigo-600 transition" 
+        : "px-3 py-1.5 rounded-lg font-bold text-slate-400 hover:text-white transition";
+      document.getElementById('lb-sort-mae').className = sort === 'mae' 
+        ? "px-3 py-1.5 rounded-lg font-bold text-white bg-indigo-600 transition" 
+        : "px-3 py-1.5 rounded-lg font-bold text-slate-400 hover:text-white transition";
+      renderLeaderboardView();
+    }
+
+    function setLeaderboardPeriod(period) {
+      lbPeriod = period;
+      document.getElementById('lb-period-month').className = period === 'month' 
+        ? "px-3 py-1.5 rounded-lg font-bold text-white bg-slate-800 transition" 
+        : "px-3 py-1.5 rounded-lg font-bold text-slate-400 hover:text-white transition";
+      document.getElementById('lb-period-all').className = period === 'all' 
+        ? "px-3 py-1.5 rounded-lg font-bold text-white bg-slate-800 transition" 
+        : "px-3 py-1.5 rounded-lg font-bold text-slate-400 hover:text-white transition";
+      renderLeaderboardView();
+    }
+
+    function renderLeaderboardView() {
+      const statsObj = lbPeriod === 'month' ? cachedMonthlyStats : cachedUserStats;
+      const usersList = Object.values(statsObj);
+
+      if (usersList.length === 0) return;
+
+      // Sort users
+      usersList.sort((a,b) => {
+        if (lbSort === 'coins') {
+          if (b.coins !== a.coins) return b.coins - a.coins;
+          return b.wins - a.wins;
+        } else {
+          const maeA = a.settledDaysCount ? (a.totalAE / a.settledDaysCount) : 999;
+          const maeB = b.settledDaysCount ? (b.totalAE / b.settledDaysCount) : 999;
+          return maeA - maeB;
+        }
       });
 
-      sortedMonthly.forEach(u => {
-        const stats = monthlyStats[u];
-        const mae = stats.settledDaysCount ? (stats.totalAE / stats.settledDaysCount).toFixed(2) : "N/A";
-        monthlyBody.innerHTML += `
-          <tr class="border-b">
-            <td class="p-2 font-medium">${u}</td>
-            <td class="p-2">${stats.wins}</td>
-            <td class="p-2 font-mono">${mae} €/MWh</td>
-          </tr>
+      const top1 = usersList[0] || null;
+      const top2 = usersList[1] || null;
+      const top3 = usersList[2] || null;
+
+      // PODIUM RENDERING (Directly mirroring Image 1!)
+      // Order: #2 on left (yellow), #1 in center (tallest green), #3 on right (coral/pink)
+      const podiumEl = document.getElementById('podium-container');
+      podiumEl.innerHTML = `
+        <!-- 2nd PLACE (Left, Gold/Amber) -->
+        ${renderPodiumStep(top2, 2, 'h-36 sm:h-44 bg-gradient-to-t from-amber-600 to-amber-400', 'border-amber-400', '#f59e0b')}
+
+        <!-- 1st PLACE (Center, Tallest Lime/Green) -->
+        ${renderPodiumStep(top1, 1, 'h-48 sm:h-56 bg-gradient-to-t from-emerald-600 to-green-400', 'border-green-400 ring-4 ring-green-400/20', '#22c55e')}
+
+        <!-- 3rd PLACE (Right, Coral/Pink) -->
+        ${renderPodiumStep(top3, 3, 'h-28 sm:h-36 bg-gradient-to-t from-rose-600 to-rose-400', 'border-rose-400', '#f43f5e')}
+      `;
+
+      // RANKED LIST FOR #4 AND BELOW (Image 1 style rows)
+      const listEl = document.getElementById('leaderboard-ranked-list');
+      listEl.innerHTML = '';
+
+      const contenders = usersList.slice(3);
+      if (contenders.length === 0) {
+        listEl.innerHTML = '<div class="text-xs text-slate-500 py-3 text-center">No other contenders yet. Invite friends to join!</div>';
+        return;
+      }
+
+      contenders.forEach((u, idx) => {
+        const rank = idx + 4;
+        const mae = u.settledDaysCount ? (u.totalAE / u.settledDaysCount).toFixed(2) : "N/A";
+        const scoreText = lbSort === 'coins' ? `${u.coins} Coins` : `${mae} €/MWh`;
+        
+        let trendIcon = '<span class="text-slate-500 text-xs">―</span>';
+        if (u.lastTrend === 'up') trendIcon = '<span class="text-emerald-400 text-sm font-bold">▲</span>';
+        else if (u.lastTrend === 'down') trendIcon = '<span class="text-red-400 text-sm font-bold">▼</span>';
+
+        listEl.innerHTML += `
+          <div class="glass-card rounded-2xl p-3 sm:px-4 border border-brand-border flex items-center justify-between gap-3 hover:border-slate-600 transition">
+            <div class="flex items-center gap-3">
+              <span class="font-display font-black text-sm text-slate-400 w-7">#${rank}</span>
+              <img src="${getAvatarUrl(u.username)}" alt="${u.username}" class="w-10 h-10 rounded-full bg-slate-800 border-2 border-indigo-500/40 object-cover">
+              <div>
+                <div class="font-display font-bold text-sm text-white">${u.username}</div>
+                <div class="text-[10px] text-slate-400">${u.wins} Wins • ${u.bidsCount} Bids</div>
+              </div>
+            </div>
+
+            <div class="flex items-center gap-3">
+              <!-- Score Badge Pill (Image 1 style) -->
+              <div class="flex items-center gap-1.5 px-3 py-1 rounded-full bg-[#0c101c] border border-brand-border font-mono font-bold text-xs text-amber-300">
+                <span>${lbSort === 'coins' ? '🪙' : '🎯'}</span>
+                <span>${scoreText}</span>
+              </div>
+              <!-- Trend Arrow (Image 1 style) -->
+              <div class="w-5 text-center">
+                ${trendIcon}
+              </div>
+            </div>
+          </div>
         `;
       });
+    }
 
-      // Render All-Time Leaderboard
-      const allTimeBody = document.getElementById('alltime-leaderboard-body');
-      allTimeBody.innerHTML = '';
-      const sortedAllTime = Object.keys(userStats).sort((a,b) => {
-        const maeA = userStats[a].settledDaysCount ? (userStats[a].totalAE / userStats[a].settledDaysCount) : 999;
-        const maeB = userStats[b].settledDaysCount ? (userStats[b].totalAE / userStats[b].settledDaysCount) : 999;
-        return maeA - maeB;
-      });
-
-      sortedAllTime.forEach(u => {
-        const stats = userStats[u];
-        const mae = stats.settledDaysCount ? (stats.totalAE / stats.settledDaysCount).toFixed(2) : "N/A";
-        allTimeBody.innerHTML += `
-          <tr class="border-b">
-            <td class="p-2 font-medium">${u}</td>
-            <td class="p-2">${stats.bidsCount}</td>
-            <td class="p-2 font-mono">${mae} €/MWh</td>
-          </tr>
+    function renderPodiumStep(user, rank, pedestalBg, avatarRing, colorHex) {
+      if (!user) {
+        return `
+          <div class="flex-1 flex flex-col items-center justify-end">
+            <div class="w-full ${pedestalBg} rounded-t-3xl flex items-center justify-center opacity-40">
+              <span class="font-display font-black text-2xl text-white/50">#${rank}</span>
+            </div>
+          </div>
         `;
-      });
+      }
 
-      // Render Net Settlement Balances
+      const mae = user.settledDaysCount ? (user.totalAE / user.settledDaysCount).toFixed(2) : "N/A";
+      const scoreBadge = lbSort === 'coins' ? `🪙 ${user.coins}` : `🎯 ${mae}€`;
+
+      return `
+        <div class="flex-1 flex flex-col items-center justify-end group">
+          <!-- User Avatar & Badge Floating above pedestal -->
+          <div class="flex flex-col items-center mb-3 text-center space-y-1">
+            <div class="relative">
+              <img src="${getAvatarUrl(user.username)}" alt="${user.username}" class="w-12 h-12 sm:w-16 sm:h-16 rounded-full bg-slate-900 border-2 ${avatarRing} object-cover shadow-xl transition transform group-hover:scale-105">
+              ${rank === 1 ? '<span class="absolute -top-3 left-1/2 -translate-x-1/2 text-xl filter drop-shadow">👑</span>' : ''}
+            </div>
+            
+            <div class="font-display font-extrabold text-xs sm:text-sm text-white max-w-[90px] sm:max-w-[120px] truncate">
+              ${user.username}
+            </div>
+
+            <!-- Score Pill (Image 1 style) -->
+            <div class="px-2.5 py-0.5 rounded-full bg-[#0c101c]/90 border border-brand-border text-[11px] font-mono font-bold text-white shadow">
+              ${scoreBadge}
+            </div>
+          </div>
+
+          <!-- Pedestal Column -->
+          <div class="w-full ${pedestalBg} rounded-t-3xl flex items-center justify-center shadow-2xl relative overflow-hidden transition-all duration-300">
+            <div class="absolute inset-0 bg-white/10 opacity-0 group-hover:opacity-100 transition"></div>
+            <span class="font-display font-black text-3xl sm:text-4xl text-slate-950/80 drop-shadow-sm">#${rank}</span>
+          </div>
+        </div>
+      `;
+    }
+
+    // -------------------------------------------------------------
+    // RENDER SETTLEMENT LEDGER & DEBT ROUTING
+    // -------------------------------------------------------------
+    function renderSettlementLedger(userStats, detailedBreakdown) {
       const settlementBody = document.getElementById('settlement-table-body');
       settlementBody.innerHTML = '';
-      sortedAllTime.forEach(u => {
-        const stats = userStats[u];
-        const color = stats.netBalance > 0 ? 'text-emerald-600' : stats.netBalance < 0 ? 'text-red-600' : 'text-slate-600';
+
+      Object.values(userStats).sort((a,b) => b.coins - a.coins).forEach(u => {
+        const netColor = u.netBalance > 0 ? 'text-emerald-400 font-bold' : u.netBalance < 0 ? 'text-red-400 font-bold' : 'text-slate-400';
         settlementBody.innerHTML += `
-          <tr class="border-b">
-            <td class="p-2 font-medium">${u}</td>
-            <td class="p-2">€${stats.bidsCount}</td>
-            <td class="p-2">${stats.wins}</td>
-            <td class="p-2 font-mono font-bold ${color}">€${stats.netBalance.toFixed(2)}</td>
+          <tr class="hover:bg-slate-800/20 transition">
+            <td class="py-2 px-2 font-display font-bold text-white flex items-center gap-2">
+              <img src="${getAvatarUrl(u.username)}" alt="" class="w-5 h-5 rounded-full">
+              <span>${u.username}</span>
+            </td>
+            <td class="py-2 px-2 font-mono font-bold text-amber-300">🪙 ${u.coins}</td>
+            <td class="py-2 px-2 font-mono text-emerald-400">+${u.moneyWon}</td>
+            <td class="py-2 px-2 font-mono text-red-400">-${u.moneyLost}</td>
+            <td class="py-2 px-2 font-mono text-right ${netColor}">€${u.netBalance.toFixed(2)}</td>
           </tr>
         `;
       });
 
-      // Render Detailed Daily Breakdown
+      // Daily Breakdown Matrix
       const dailyBody = document.getElementById('daily-breakdown-body');
       dailyBody.innerHTML = '';
       detailedBreakdown.forEach(row => {
         dailyBody.innerHTML += `
-          <tr class="border-b">
-            <td class="p-2 font-mono">${row.date}</td>
-            <td class="p-2 font-mono">${row.actual}</td>
-            <td class="p-2 font-medium">${row.username}</td>
-            <td class="p-2 font-mono">${row.bidPrice}</td>
-            <td class="p-2 font-mono ${row.color}">${row.netResult}</td>
+          <tr class="hover:bg-slate-800/20 transition">
+            <td class="py-2 px-3 text-slate-300">${row.date}</td>
+            <td class="py-2 px-3 text-slate-400">${row.actual}</td>
+            <td class="py-2 px-3 font-medium text-white">${row.username}</td>
+            <td class="py-2 px-3 text-slate-300">${row.bidPrice}</td>
+            <td class="py-2 px-3 text-right ${row.color}">${row.netResult}</td>
           </tr>
         `;
       });
@@ -827,9 +1803,6 @@
       renderSettlementRouting(userStats);
     }
 
-    // -------------------------------------------------------------
-    // DEBT NETTING ALGORITHM
-    // -------------------------------------------------------------
     function renderSettlementRouting(userStats) {
       const debtors = [];
       const creditors = [];
@@ -844,7 +1817,7 @@
       paymentsUI.innerHTML = '';
 
       if (debtors.length === 0 && creditors.length === 0) {
-        paymentsUI.innerHTML = '<li>All balances are zero. No transfers needed.</li>';
+        paymentsUI.innerHTML = '<li class="text-slate-400 p-2">All balances are completely balanced. No transfers needed!</li>';
         return;
       }
 
@@ -853,7 +1826,10 @@
         const payAmount = Math.min(debtors[i].amount, creditors[j].amount);
         
         paymentsUI.innerHTML += `
-          <li>🔴 <strong>${debtors[i].user}</strong> pays 🟢 <strong>${creditors[j].user}</strong>: <span class="font-bold">€${payAmount.toFixed(2)}</span></li>
+          <li class="flex items-center justify-between p-2 rounded-lg bg-[#12192a] border border-brand-border">
+            <span>🔴 <strong class="text-white">${debtors[i].user}</strong> pays 🟢 <strong class="text-white">${creditors[j].user}</strong></span>
+            <span class="font-bold text-amber-300">€${payAmount.toFixed(2)} (${payAmount} Coins)</span>
+          </li>
         `;
 
         debtors[i].amount -= payAmount;
@@ -865,7 +1841,7 @@
     }
 
     // -------------------------------------------------------------
-    // MANAGE INVITES & DELETE LOGIC
+    // MANAGE INVITES
     // -------------------------------------------------------------
     async function generateInviteCode() {
       const code = 'INVITE-' + Math.random().toString(36).substring(2, 8).toUpperCase();
@@ -876,7 +1852,7 @@
       });
 
       const resultUI = document.getElementById('new-invite-result');
-      resultUI.innerText = `Created Invite Code: ${code}`;
+      resultUI.innerText = `Created Code: ${code}`;
       resultUI.classList.remove('hidden');
       showToast('Invite code generated!', 'success');
       loadInvitesList();
@@ -884,7 +1860,7 @@
 
     async function deleteInviteCode(code) {
       await db.collection('invites').doc(code).delete();
-      showToast(`Invite link ${code} deleted.`, 'info');
+      showToast(`Invite code ${code} deleted.`, 'info');
       loadInvitesList();
     }
 
@@ -896,21 +1872,21 @@
       snap.forEach(doc => {
         const data = doc.data();
         const status = data.used 
-          ? '<span class="bg-red-100 text-red-800 px-2 py-0.5 rounded">Used</span>' 
-          : '<span class="bg-emerald-100 text-emerald-800 px-2 py-0.5 rounded">Active</span>';
+          ? '<span class="px-2 py-0.5 rounded-full bg-red-500/20 text-red-400 border border-red-500/30 text-[10px] font-bold">Claimed</span>' 
+          : '<span class="px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 text-[10px] font-bold">Active</span>';
 
-        const usedUsername = data.used_by_username || (data.used_by_uid ? (usersMap[data.used_by_uid] || 'Registered User') : '-');
+        const usedUsername = data.used_by_username || (data.used_by_uid ? (usersMap[data.used_by_uid] || 'User') : '-');
 
         const actionBtn = !data.used 
-          ? `<button onclick="deleteInviteCode('${doc.id}')" class="bg-red-50 text-red-600 hover:bg-red-100 px-2 py-1 rounded text-xs font-semibold">Delete</button>`
-          : `<span class="text-slate-400 text-xs">N/A</span>`;
+          ? `<button onclick="deleteInviteCode('${doc.id}')" class="px-2.5 py-1 rounded-lg bg-red-500/20 hover:bg-red-500/40 text-red-300 text-xs font-semibold transition">Delete</button>`
+          : `<span class="text-slate-500 text-xs">-</span>`;
 
         body.innerHTML += `
-          <tr class="border-b">
-            <td class="p-2 font-mono font-bold">${doc.id}</td>
-            <td class="p-2">${status}</td>
-            <td class="p-2 font-medium">${usedUsername}</td>
-            <td class="p-2">${actionBtn}</td>
+          <tr class="hover:bg-slate-800/20 transition">
+            <td class="py-2.5 px-3 font-mono font-bold text-white">${doc.id}</td>
+            <td class="py-2.5 px-3">${status}</td>
+            <td class="py-2.5 px-3 text-slate-300">${usedUsername}</td>
+            <td class="py-2.5 px-3 text-right">${actionBtn}</td>
           </tr>
         `;
       });
@@ -931,11 +1907,11 @@
       const encodedUri = encodeURI(csvContent);
       const link = document.createElement("a");
       link.setAttribute("href", encodedUri);
-      link.setAttribute("download", `HUPX_Bids_Backup_${new Date().toISOString().split('T')[0]}.csv`);
+      link.setAttribute("download", `HUPX_Arena_Data_${new Date().toISOString().split('T')[0]}.csv`);
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
-      showToast('Exported CSV successfully.', 'success');
+      showToast('Exported CSV backup successfully.', 'success');
     }
   </script>
 </body>
