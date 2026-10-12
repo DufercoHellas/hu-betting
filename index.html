@@ -488,6 +488,7 @@
 
               <p class="text-xs text-slate-400 leading-relaxed">
                 When daily HUPX results are published, enter the final average price (€/MWh) for <span id="actual-date-label" class="text-indigo-400 font-mono font-bold"></span>.
+                <span class="block text-[11px] text-amber-400/90 font-medium mt-1">⏰ Price entry unlocks daily at 13:55 Greek time on day before delivery.</span>
               </p>
 
               <div class="space-y-3">
@@ -499,14 +500,14 @@
                   </div>
                 </div>
 
-                <button onclick="submitActualPrice()" class="w-full py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs shadow-lg shadow-emerald-600/20 transition flex items-center justify-center gap-2">
-                  <span>✓</span>
-                  <span>Set / Update Actual Price</span>
+                <button id="submit-actual-btn" onclick="submitActualPrice()" class="w-full py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs shadow-lg shadow-emerald-600/20 transition flex items-center justify-center gap-2">
+                  <span id="submit-actual-icon">✓</span>
+                  <span id="submit-actual-text">Set / Update Actual Price</span>
                 </button>
               </div>
 
               <div id="settlement-status-badge" class="p-2.5 rounded-xl bg-slate-800/40 border border-slate-700/50 text-xs text-slate-400 flex items-center gap-2">
-                <span>ℹ️</span>
+                <span id="settlement-status-icon">ℹ️</span>
                 <span id="settlement-status-text">Price pending for this date.</span>
               </div>
             </div>
@@ -1004,21 +1005,51 @@
     }
 
     // -------------------------------------------------------------
-    // DEADLINE & ANIMATED COUNTDOWN LOGIC (11:00 AM GREEK TIME)
+    // DEADLINE & GREEK TIME LOGIC (11:00 AM BIDDING & 13:55 SETTLEMENT)
     // -------------------------------------------------------------
+    function getGreekTimeOffset(date) {
+      try {
+        const f = new Intl.DateTimeFormat('en-US', { timeZone: 'Europe/Athens', timeZoneName: 'shortOffset' }).format(date);
+        const m = f.match(/GMT([+-]\d+)/);
+        if (m) {
+          const sign = m[1].startsWith('-') ? '-' : '+';
+          const hours = Math.abs(parseInt(m[1], 10));
+          return `${sign}${String(hours).padStart(2, '0')}:00`;
+        }
+      } catch (e) {}
+      return '+03:00';
+    }
+
     function getSubmissionDeadline(targetDeliveryDateStr) {
       const targetDate = new Date(targetDeliveryDateStr + "T00:00:00Z");
       const deadlineDate = new Date(targetDate);
       deadlineDate.setUTCDate(deadlineDate.getUTCDate() - 1);
-      
-      const deadlineStr = deadlineDate.toISOString().split('T')[0] + "T11:00:00+03:00";
-      return new Date(deadlineStr);
+      const deadlineDateStr = deadlineDate.toISOString().split('T')[0];
+      const offset = getGreekTimeOffset(deadlineDate);
+      return new Date(deadlineDateStr + "T11:00:00" + offset);
     }
 
     function isPastDeadline(targetDeliveryDateStr) {
       const deadline = getSubmissionDeadline(targetDeliveryDateStr);
       const now = new Date();
       return now > deadline;
+    }
+
+    // Actual HUPX price for delivery day D can only be set after 13:55 Greek time on day D-1
+    function getActualPriceUnlockTime(targetDeliveryDateStr) {
+      const targetDate = new Date(targetDeliveryDateStr + "T00:00:00Z");
+      const dayBeforeDate = new Date(targetDate);
+      dayBeforeDate.setUTCDate(dayBeforeDate.getUTCDate() - 1);
+      const dayBeforeDateStr = dayBeforeDate.toISOString().split('T')[0];
+      const offset = getGreekTimeOffset(dayBeforeDate);
+      return new Date(dayBeforeDateStr + "T13:55:00" + offset);
+    }
+
+    function canSetActualPrice(targetDeliveryDateStr) {
+      if (!targetDeliveryDateStr) return false;
+      const unlockTime = getActualPriceUnlockTime(targetDeliveryDateStr);
+      const now = new Date();
+      return now >= unlockTime;
     }
 
     function startCountdownTimer() {
@@ -1070,6 +1101,12 @@
             subtextEl.innerText = "Lock in your prediction before 11:00 AM Greek time.";
             subtextEl.className = "text-[11px] text-slate-400 text-center font-medium";
           }
+        }
+
+        // Live check if settlement button should unlock when 13:55 Greek time arrives
+        const submitActualBtn = document.getElementById('submit-actual-btn');
+        if (submitActualBtn && submitActualBtn.disabled && canSetActualPrice(targetDateStr)) {
+          loadDateData();
         }
       }
 
@@ -1185,6 +1222,41 @@
           statusPill.className = "px-3 py-1 rounded-full text-[11px] font-extrabold uppercase tracking-wider bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 flex items-center";
           settlementStatusText.innerText = "Arena open for submissions until 11:00 AM Greek time.";
         }
+      }
+
+      // Check lock state for setting actual price (unlocks at 13:55 Greek time on day before delivery)
+      const canSetPrice = canSetActualPrice(targetDate);
+      const submitActualBtn = document.getElementById('submit-actual-btn');
+      const submitActualIcon = document.getElementById('submit-actual-icon');
+      const submitActualText = document.getElementById('submit-actual-text');
+      const settlementStatusIcon = document.getElementById('settlement-status-icon');
+      const unlockTime = getActualPriceUnlockTime(targetDate);
+      const dayBeforeStr = unlockTime.toISOString().split('T')[0];
+
+      if (!canSetPrice) {
+        if (submitActualBtn) {
+          submitActualBtn.disabled = true;
+          submitActualBtn.className = "w-full py-2.5 rounded-xl bg-slate-800/80 border border-slate-700/60 text-slate-400 font-bold text-xs shadow-none flex items-center justify-center gap-2 cursor-not-allowed opacity-75";
+        }
+        if (submitActualIcon) submitActualIcon.innerText = "🔒";
+        if (submitActualText) submitActualText.innerText = "Locked until 13:55 Greek Time";
+        actualInput.disabled = true;
+        actualInput.classList.add('cursor-not-allowed', 'opacity-60');
+
+        if (!actualExists) {
+          if (settlementStatusIcon) settlementStatusIcon.innerText = "🔒";
+          settlementStatusText.innerHTML = `Price entry locked until <strong>13:55 Greek time</strong> on ${dayBeforeStr}.`;
+        }
+      } else {
+        if (submitActualBtn) {
+          submitActualBtn.disabled = false;
+          submitActualBtn.className = "w-full py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs shadow-lg shadow-emerald-600/20 transition flex items-center justify-center gap-2 cursor-pointer";
+        }
+        if (submitActualIcon) submitActualIcon.innerText = "✓";
+        if (submitActualText) submitActualText.innerText = "Set / Update Actual Price";
+        actualInput.disabled = false;
+        actualInput.classList.remove('cursor-not-allowed', 'opacity-60');
+        if (settlementStatusIcon) settlementStatusIcon.innerText = "ℹ️";
       }
 
       // Check self bid
@@ -1398,6 +1470,13 @@
     async function submitActualPrice() {
       const targetDate = document.getElementById('common-date').value;
       const actualPrice = parseFloat(document.getElementById('actual-price').value);
+
+      if (!canSetActualPrice(targetDate)) {
+        const unlockTime = getActualPriceUnlockTime(targetDate);
+        const dayBeforeStr = unlockTime.toISOString().split('T')[0];
+        showToast(`Locked! Official HUPX price for ${targetDate} can only be set after 13:55 Greek time on ${dayBeforeStr}.`, 'error');
+        return;
+      }
 
       if (!targetDate || isNaN(actualPrice)) {
         showToast('Enter a valid actual price (e.g. 82.10).', 'error');
