@@ -5,12 +5,10 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>HUPX Energy Arena | Daily Price Prediction</title>
   
-  <!-- Google Fonts: Inter & Outfit -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700;800;900&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet">
 
-  <!-- Tailwind CSS CDN -->
   <script src="https://cdn.tailwindcss.com"></script>
   <script>
     tailwind.config = {
@@ -42,9 +40,7 @@
     }
   </script>
 
-  <!-- bcryptjs CDN -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/bcryptjs/2.4.3/bcrypt.min.js"></script>
-  <!-- Firebase SDKs -->
   <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-auth-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore-compat.js"></script>
@@ -60,7 +56,6 @@
       background-attachment: fixed;
     }
 
-    /* Podium Sunburst Effect */
     .podium-sunburst {
       background: repeating-conic-gradient(
         from 0deg,
@@ -71,7 +66,6 @@
       -webkit-mask-image: radial-gradient(circle at 50% 40%, black 20%, transparent 75%);
     }
 
-    /* Starry Win Badge */
     .star-badge-ring {
       border: 2px dashed #f59e0b;
       animation: rotateSlow 20s linear infinite;
@@ -81,7 +75,6 @@
       to { transform: rotate(360deg); }
     }
 
-    /* Countdown Digit Pulse */
     @keyframes secondTick {
       0%, 100% { transform: scale(1); }
       50% { transform: scale(1.05); }
@@ -90,7 +83,6 @@
       animation: secondTick 1s cubic-bezier(0.4, 0, 0.6, 1) infinite;
     }
 
-    /* Glass card backdrop */
     .glass-card {
       background: rgba(19, 25, 41, 0.85);
       backdrop-filter: blur(12px);
@@ -103,7 +95,6 @@
       box-shadow: 0 8px 30px -10px rgba(99, 102, 241, 0.25);
     }
 
-    /* Custom Scrollbar */
     ::-webkit-scrollbar {
       width: 6px;
       height: 6px;
@@ -122,10 +113,8 @@
 </head>
 <body class="min-h-screen text-slate-200 antialiased selection:bg-indigo-500 selection:text-white flex flex-col">
 
-  <!-- TOAST NOTIFICATION CONTAINER -->
   <div id="toast-container" class="fixed bottom-5 right-5 z-50 flex flex-col gap-2 max-w-sm w-full pointer-events-none"></div>
 
-  <!-- RULES MODAL (Clean, fun, accessible anytime) -->
   <div id="rules-modal" class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm hidden">
     <div class="glass-card rounded-2xl max-w-md w-full p-6 space-y-4 border border-brand-borderLight shadow-2xl relative">
       <div class="flex items-center justify-between border-b border-brand-border pb-3">
@@ -173,17 +162,10 @@
     </div>
   </div>
 
-
-
-  <!-- MAIN VIEWPORT -->
   <main class="max-w-6xl mx-auto px-4 py-6 w-full flex-1">
     
-    <!-- ======================================================== -->
-    <!-- AUTHENTICATION CONTAINER (Dark & Sleek) -->
-    <!-- ======================================================== -->
     <div id="auth-container" class="max-w-md mx-auto my-12 glass-card rounded-2xl p-7 border border-brand-border shadow-2xl space-y-6 relative overflow-hidden">
       
-      <!-- Ambient light effect -->
       <div class="absolute -top-24 -left-24 w-48 h-48 bg-indigo-600/30 rounded-full blur-3xl pointer-events-none"></div>
       <div class="absolute -bottom-24 -right-24 w-48 h-48 bg-emerald-600/20 rounded-full blur-3xl pointer-events-none"></div>
 
@@ -195,7 +177,6 @@
         <p class="text-xs text-slate-400">Predict daily HUPX electricity prices & climb the podium</p>
       </div>
 
-      <!-- Auth Switcher Pill -->
       <div class="flex p-1 bg-[#0b0e19] rounded-xl border border-brand-border relative">
         <button id="tab-login" onclick="switchAuthTab('login')" class="flex-1 py-2 text-xs font-bold rounded-lg transition text-white bg-indigo-600 shadow-md">
           Sign In
@@ -205,7 +186,6 @@
         </button>
       </div>
 
-      <!-- Login Form -->
       <form id="login-form" onsubmit="handleLogin(event)" class="space-y-4">
         <div>
           <label class="block text-xs font-semibold text-slate-300 mb-1.5">Email Address</label>
@@ -220,7 +200,6 @@
         </button>
       </form>
 
-      <!-- Register Form -->
       <form id="register-form" onsubmit="handleRegister(event)" class="space-y-3.5 hidden">
         <div>
           <label class="block text-xs font-semibold text-slate-300 mb-1">Invite Code</label>
@@ -248,12 +227,8 @@
       </form>
     </div>
 
-    <!-- ======================================================== -->
-    <!-- MAIN APP DASHBOARD -->
-    <!-- ======================================================== -->
     <div id="app-dashboard" class="space-y-6 hidden">
       
-      <!-- SLEEK TAB NAVIGATION (Image 2 style segmented pills) -->
       <div class="flex items-center justify-between flex-wrap gap-3 pb-2 border-b border-brand-border/60">
         <nav class="flex items-center gap-1.5 p-1 rounded-2xl bg-brand-card/90 border border-brand-border">
           <button id="nav-bidding" onclick="switchAppTab('bidding')" class="px-4 py-2 rounded-xl text-xs font-bold text-white bg-gradient-to-r from-indigo-600 to-indigo-500 shadow-md shadow-indigo-600/20 transition flex items-center gap-2">
@@ -274,22 +249,18 @@
           </button>
         </nav>
 
-        <!-- Right side of navigation: Best Sniper, Available Coins, and Avatar Menu -->
         <div class="flex items-center gap-2 sm:gap-3 text-xs">
-          <!-- Best Sniper Ticker -->
           <span class="hidden sm:flex items-center gap-1 bg-slate-800/40 px-2.5 py-1.5 rounded-xl border border-slate-700/40 text-slate-400 font-medium">
             <span>🎯 Best Sniper:</span>
             <strong id="ticker-best-sniper" class="text-emerald-400 font-mono">--</strong>
           </span>
 
-          <!-- Available Coins (Replaced Coin Leader with Available Coins!) -->
           <div class="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-gradient-to-r from-amber-500/20 to-yellow-500/10 border border-amber-500/40 text-amber-300 font-display font-bold shadow-sm" title="Your Available Coins">
             <span class="text-sm">🪙</span>
             <span id="header-user-coins">30</span>
             <span class="text-[10px] text-amber-400/80 font-normal">Coins</span>
           </div>
 
-          <!-- Avatar with Dropdown Menu next to Available Coins -->
           <div id="user-header-info" class="relative">
             <button onclick="toggleUserMenu(event)" id="user-menu-btn" class="flex items-center gap-2 bg-brand-card hover:bg-brand-card2 border border-brand-border hover:border-slate-500 rounded-xl py-1 px-2.5 transition shadow-sm focus:outline-none cursor-pointer">
               <img id="header-avatar" src="" alt="Avatar" class="w-6 h-6 rounded-full bg-slate-800 border border-indigo-500/40 object-cover">
@@ -297,13 +268,8 @@
               <span class="text-slate-400 text-[10px] ml-0.5">▼</span>
             </button>
 
-            <!-- Dropdown Menu Strictly Below Avatar -->
             <div id="user-dropdown-menu" class="hidden absolute right-0 top-full mt-2 w-48 glass-card rounded-2xl border border-brand-border shadow-2xl py-2 z-50">
               <div class="py-1">
-                <button onclick="exportToCSV(); toggleUserMenu(false);" class="w-full px-3.5 py-2 text-left text-xs text-slate-300 hover:text-white hover:bg-slate-800/60 flex items-center gap-2.5 transition">
-                  <span class="text-sm">📊</span>
-                  <span class="font-semibold">Export Data (CSV)</span>
-                </button>
                 <button onclick="toggleRulesModal(true); toggleUserMenu(false);" class="w-full px-3.5 py-2 text-left text-xs text-slate-300 hover:text-white hover:bg-slate-800/60 flex items-center gap-2.5 transition">
                   <span class="text-sm">ℹ️</span>
                   <span class="font-semibold">Game Rules</span>
@@ -321,12 +287,8 @@
         </div>
       </div>
 
-      <!-- ======================================================== -->
-      <!-- TAB 1: DAILY ARENA (PREDICTION DETAILS - Image 2 Inspired) -->
-      <!-- ======================================================== -->
       <div id="tab-content-bidding" class="space-y-6">
         
-        <!-- WARNING BANNER FOR NON-TOMORROW SELECTION -->
         <div id="date-warning-banner" class="hidden rounded-xl bg-amber-500/15 border border-amber-500/40 text-amber-200 px-4 py-3 text-xs font-bold flex items-center justify-between gap-2 shadow-lg">
           <div class="flex items-center gap-2">
             <span class="text-lg">⚠️</span>
@@ -337,13 +299,10 @@
           </button>
         </div>
 
-        <!-- MAIN MATCH / MARKET CARD (Dark Polished Arena Banner) -->
         <div class="glass-card rounded-3xl p-5 sm:p-7 border border-brand-border relative overflow-hidden space-y-6">
           
-          <!-- Background accent glow -->
           <div class="absolute -top-32 right-1/4 w-80 h-80 bg-indigo-600/15 rounded-full blur-3xl pointer-events-none"></div>
 
-          <!-- Market Header Bar -->
           <div class="flex flex-wrap items-center justify-between gap-4 border-b border-brand-border/60 pb-5">
             <div>
               <h2 class="font-display font-extrabold text-2xl sm:text-3xl text-white tracking-tight flex items-center gap-2 mt-0.5">
@@ -354,7 +313,6 @@
               </p>
             </div>
 
-            <!-- Date Selector Controls -->
             <div class="flex items-center gap-2 bg-[#0c101c] p-1.5 rounded-2xl border border-brand-border">
               <button onclick="quickShiftDate(-1)" title="Previous Day" class="px-2.5 py-1.5 rounded-xl hover:bg-slate-800 text-slate-300 font-bold text-xs transition">◀</button>
               <input type="date" id="common-date" onchange="handleDateChange()" class="bg-transparent text-white font-mono font-bold text-xs px-2 py-1 focus:outline-none">
@@ -363,13 +321,10 @@
             </div>
           </div>
 
-          <!-- MATCH ARENA SCOREBOARD & COUNTDOWN CLOCK -->
           <div class="grid grid-cols-1 lg:grid-cols-12 gap-6 items-center">
             
-            <!-- Left Side: Market Duel / Pot Breakdown (Cols 7) -->
             <div class="lg:col-span-7 grid grid-cols-2 gap-4 p-4 rounded-2xl bg-[#0d1222]/80 border border-brand-border/80 items-center text-center">
               
-              <!-- Market Entity 1: Benchmark / Market -->
               <div class="flex flex-col items-center space-y-1.5">
                 <div class="w-14 h-14 sm:w-16 sm:h-16 rounded-2xl bg-gradient-to-tr from-red-500/20 via-white/10 to-emerald-500/20 border border-brand-border flex items-center justify-center shadow-lg overflow-hidden">
                   <svg class="w-10 h-7 rounded-md shadow-sm border border-white/20" viewBox="0 0 60 40">
@@ -387,7 +342,6 @@
                 </div>
               </div>
 
-              <!-- Center: Pot / Status Badge -->
               <div class="flex flex-col items-center space-y-2">
                 <div id="market-status-pill" class="px-3 py-1 rounded-full text-[11px] font-extrabold uppercase tracking-wider bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 flex items-center gap-1.5">
                   <span class="w-2 h-2 rounded-full bg-emerald-400 animate-ping"></span>
@@ -403,7 +357,6 @@
 
             </div>
 
-            <!-- Right Side: COOL ANIMATED COUNTDOWN TIMER (Cols 5) -->
             <div class="lg:col-span-5 p-4 rounded-2xl bg-[#0d1222]/80 border border-brand-border/80 flex flex-col items-center justify-center space-y-3 relative overflow-hidden">
               <div class="flex items-center justify-between w-full text-[11px] text-slate-400 font-bold uppercase tracking-wider">
                 <span class="flex items-center gap-1.5">
@@ -413,9 +366,7 @@
                 <span class="text-slate-400 font-mono text-[10px]">11:00 AM GREEK TIME</span>
               </div>
 
-              <!-- Digit Boxes with Neon Glow -->
               <div class="flex items-center justify-center gap-2 sm:gap-3 py-1">
-                <!-- Hours -->
                 <div class="flex flex-col items-center">
                   <div class="w-14 h-14 sm:w-16 sm:h-16 rounded-2xl bg-[#141b2d] border border-brand-border flex items-center justify-center font-display font-extrabold text-2xl sm:text-3xl text-white shadow-inner">
                     <span id="cd-hours">00</span>
@@ -425,7 +376,6 @@
                 
                 <span class="font-extrabold text-xl text-slate-500 mb-4">:</span>
 
-                <!-- Minutes -->
                 <div class="flex flex-col items-center">
                   <div class="w-14 h-14 sm:w-16 sm:h-16 rounded-2xl bg-[#141b2d] border border-brand-border flex items-center justify-center font-display font-extrabold text-2xl sm:text-3xl text-white shadow-inner">
                     <span id="cd-mins">00</span>
@@ -435,7 +385,6 @@
 
                 <span class="font-extrabold text-xl text-slate-500 mb-4">:</span>
 
-                <!-- Seconds (Animated Pulse) -->
                 <div class="flex flex-col items-center">
                   <div class="w-14 h-14 sm:w-16 sm:h-16 rounded-2xl bg-[#141b2d] border border-indigo-500/50 flex items-center justify-center font-display font-extrabold text-2xl sm:text-3xl text-indigo-400 shadow-inner tick-pulse">
                     <span id="cd-secs">00</span>
@@ -444,7 +393,6 @@
                 </div>
               </div>
 
-              <!-- Progress / Status Footer -->
               <div id="countdown-subtext" class="text-[11px] text-slate-400 text-center font-medium">
                 Predictions lock 24 hours prior to power dispatch.
               </div>
@@ -452,17 +400,13 @@
 
           </div>
 
-          <!-- "YOU HAVE PLACED" CARD (Directly styled like Image 2!) -->
           <div id="user-prediction-container" class="rounded-2xl p-5 border transition-all">
-            <!-- Will be dynamically populated by loadDateData(): shows either bidding input or placed bet card with starry badge -->
           </div>
 
         </div>
 
-        <!-- 2-COLUMN SECTION: LIVE COMMUNITY BETS (Image 2 style) + SETTLE ACTUALS PANEL -->
         <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
           
-          <!-- Column 8: Community Bets Stream (Image 2 bottom list style) -->
           <div class="lg:col-span-8 space-y-3">
             <div class="flex items-center justify-between">
               <div class="flex items-center gap-2">
@@ -472,13 +416,10 @@
               <span id="bids-count-tag" class="text-xs px-2.5 py-1 rounded-full bg-slate-800 text-slate-300 border border-slate-700">0 Bids</span>
             </div>
 
-            <!-- Bids Stream List -->
             <div id="community-bids-list" class="space-y-2.5">
-              <!-- Dynamically populated rows styled as sleek cards -->
             </div>
           </div>
 
-          <!-- Column 4: Settle Actual HUPX Price & Admin Station -->
           <div class="lg:col-span-4 space-y-4">
             <div class="glass-card rounded-2xl p-5 border border-brand-border space-y-4">
               <div class="flex items-center gap-2 border-b border-brand-border pb-3">
@@ -517,19 +458,13 @@
 
       </div>
 
-      <!-- ======================================================== -->
-      <!-- TAB 2: PODIUM LEADERBOARD (Directly matching Image 1!) -->
-      <!-- ======================================================== -->
       <div id="tab-content-leaderboard" class="space-y-6 hidden">
         
-        <!-- Podium Hero Section with Sunburst -->
         <div class="glass-card rounded-3xl p-6 sm:p-8 border border-brand-border relative overflow-hidden space-y-6">
           
-          <!-- Sunburst background rays effect -->
           <div class="absolute inset-0 podium-sunburst pointer-events-none opacity-40"></div>
           <div class="absolute top-0 left-1/2 -translate-x-1/2 w-96 h-96 bg-indigo-600/10 rounded-full blur-3xl pointer-events-none"></div>
 
-          <!-- Leaderboard Header & Filter Pills -->
           <div class="relative flex flex-wrap items-center justify-between gap-4 border-b border-brand-border/60 pb-4">
             <div>
               <h2 class="font-display font-extrabold text-2xl sm:text-3xl text-white tracking-tight flex items-center gap-2">
@@ -538,7 +473,6 @@
               <p class="text-xs text-slate-400 mt-0.5">Top energy traders ranked by coin profits & sniper accuracy</p>
             </div>
 
-            <!-- Mode Switchers (Coins vs MAE & Current Month vs All-Time) -->
             <div class="flex items-center flex-wrap gap-2">
               <div class="flex p-1 bg-[#0c101c] rounded-xl border border-brand-border text-xs">
                 <button id="lb-sort-coins" onclick="setLeaderboardSort('coins')" class="px-3 py-1.5 rounded-lg font-bold text-white bg-indigo-600 transition">
@@ -560,18 +494,14 @@
             </div>
           </div>
 
-          <!-- 3-STEP PODIUM (Exact layout of Image 1: #2 on left, #1 in center, #3 on right) -->
           <div class="relative pt-6 pb-2">
             <div id="podium-container" class="flex items-end justify-center max-w-lg mx-auto gap-3 sm:gap-6 min-h-[280px]">
-              <!-- Dynamically populated podium elements -->
             </div>
           </div>
 
-          <!-- RANKED LIST FOR #4 AND BELOW (Image 1 style rows) -->
           <div class="relative space-y-3 pt-4 border-t border-brand-border/60">
             <h3 class="font-display font-bold text-sm text-slate-300">Contenders (#4 & Below)</h3>
             <div id="leaderboard-ranked-list" class="space-y-2">
-              <!-- Dynamically populated cards with #Rank, Avatar, Name, Score Pill, and Trend Arrow -->
             </div>
           </div>
 
@@ -579,12 +509,8 @@
 
       </div>
 
-      <!-- ======================================================== -->
-      <!-- TAB 3: COIN WALLET & FINANCIAL SETTLEMENTS -->
-      <!-- ======================================================== -->
       <div id="tab-content-settlement" class="space-y-6 hidden">
         
-        <!-- Summary Cards Grid -->
         <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
           
           <div class="glass-card rounded-2xl p-5 border border-brand-border space-y-1">
@@ -625,12 +551,10 @@
 
         </div>
 
-        <!-- Period Filter -->
         <div class="flex items-center justify-between flex-wrap gap-4 glass-card p-4 rounded-2xl border border-brand-border">
           <div class="flex items-center gap-2 text-xs font-semibold text-slate-300">
             <span>Filter Settlement Period:</span>
             <select id="settlement-month-filter" onchange="loadAnalyticsAndSettlements()" class="px-3 py-1.5 rounded-xl bg-[#0c101c] border border-brand-border text-white font-bold text-xs focus:outline-none">
-              <!-- Options populated dynamically -->
             </select>
           </div>
 
@@ -639,10 +563,8 @@
           </span>
         </div>
 
-        <!-- Two Columns: Net Balances & Debt Netting Transfers -->
         <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
           
-          <!-- Column 1: Net Balances Table -->
           <div class="glass-card rounded-2xl p-5 border border-brand-border space-y-3">
             <h3 class="font-display font-bold text-sm text-white flex items-center gap-2">
               <span>👥</span>
@@ -660,13 +582,11 @@
                   </tr>
                 </thead>
                 <tbody id="settlement-table-body" class="divide-y divide-brand-border/40">
-                  <!-- Populated dynamically -->
                 </tbody>
               </table>
             </div>
           </div>
 
-          <!-- Column 2: Payment Transfers (Who pays whom) -->
           <div class="glass-card rounded-2xl p-5 border border-brand-border space-y-3">
             <h3 class="font-display font-bold text-sm text-white flex items-center gap-2">
               <span>💸</span>
@@ -682,7 +602,6 @@
 
         </div>
 
-        <!-- Daily Breakdown Matrix -->
         <div class="glass-card rounded-2xl p-5 border border-brand-border space-y-3">
           <h3 class="font-display font-bold text-sm text-white flex items-center gap-2">
             <span>📅</span>
@@ -700,7 +619,6 @@
                 </tr>
               </thead>
               <tbody id="daily-breakdown-body" class="divide-y divide-brand-border/40 font-mono">
-                <!-- Dynamically populated -->
               </tbody>
             </table>
           </div>
@@ -708,9 +626,6 @@
 
       </div>
 
-      <!-- ======================================================== -->
-      <!-- TAB 4: MANAGE INVITES -->
-      <!-- ======================================================== -->
       <div id="tab-content-invites" class="space-y-6 hidden">
         
         <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
@@ -742,7 +657,6 @@
                   </tr>
                 </thead>
                 <tbody id="invites-table-body" class="divide-y divide-brand-border/40">
-                  <!-- Populated dynamically -->
                 </tbody>
               </table>
             </div>
@@ -755,15 +669,7 @@
 
   </main>
 
-
-
-  <!-- ======================================================== -->
-  <!-- APPLICATION SCRIPTS -->
-  <!-- ======================================================== -->
   <script>
-    // -------------------------------------------------------------
-    // FIREBASE CONFIGURATION (PRESERVED EXACTLY)
-    // -------------------------------------------------------------
     const firebaseConfig = {
       apiKey: "AIzaSyC-98ixBhOkp0-9sh64Rl0AJ233PIJcFCs",
       authDomain: "hungary-energy-betting.firebaseapp.com",
@@ -784,13 +690,11 @@
     let usersMap = {};
     let timerInterval = null;
 
-    // Leaderboard display preferences
-    let lbSort = 'coins'; // 'coins' or 'mae'
-    let lbPeriod = 'all'; // 'month' or 'all'
+    let lbSort = 'coins'; 
+    let lbPeriod = 'all'; 
     let cachedMonthlyStats = {};
     let cachedUserStats = {};
 
-    // Helper: generate avatar URL for a username
     function getAvatarUrl(username) {
       const cleanSeed = encodeURIComponent(username || 'trader');
       return `https://api.dicebear.com/7.x/bottts/svg?seed=${cleanSeed}&backgroundColor=transparent`;
@@ -834,7 +738,6 @@
       }
     }
 
-    // Close user dropdown when clicking outside
     document.addEventListener('click', (e) => {
       const container = document.getElementById('user-header-info');
       const menu = document.getElementById('user-dropdown-menu');
@@ -843,9 +746,6 @@
       }
     });
 
-    // -------------------------------------------------------------
-    // TOAST NOTIFICATIONS (Polished dark theme)
-    // -------------------------------------------------------------
     function showToast(message, type = 'info') {
       const container = document.getElementById('toast-container');
       const toast = document.createElement('div');
@@ -878,9 +778,6 @@
       }, 4000);
     }
 
-    // -------------------------------------------------------------
-    // AUTH SWITCHER & LOGIN / REGISTRATION
-    // -------------------------------------------------------------
     function switchAuthTab(tab) {
       const tabLogin = document.getElementById('tab-login');
       const tabRegister = document.getElementById('tab-register');
@@ -1004,9 +901,6 @@
       });
     }
 
-    // -------------------------------------------------------------
-    // DEADLINE & GREEK TIME LOGIC (11:00 AM BIDDING & 13:55 SETTLEMENT)
-    // -------------------------------------------------------------
     function getGreekTimeOffset(date) {
       try {
         const f = new Intl.DateTimeFormat('en-US', { timeZone: 'Europe/Athens', timeZoneName: 'shortOffset' }).format(date);
@@ -1035,7 +929,6 @@
       return now > deadline;
     }
 
-    // Actual HUPX price for delivery day D can only be set after 13:55 Greek time on day D-1
     function getActualPriceUnlockTime(targetDeliveryDateStr) {
       const targetDate = new Date(targetDeliveryDateStr + "T00:00:00Z");
       const dayBeforeDate = new Date(targetDate);
@@ -1103,7 +996,6 @@
           }
         }
 
-        // Live check if settlement button should unlock when 13:55 Greek time arrives
         const submitActualBtn = document.getElementById('submit-actual-btn');
         if (submitActualBtn && submitActualBtn.disabled && canSetActualPrice(targetDateStr)) {
           loadDateData();
@@ -1114,9 +1006,6 @@
       timerInterval = setInterval(updateTimer, 1000);
     }
 
-    // -------------------------------------------------------------
-    // DATE CHANGE & VIEW CONTROLLER
-    // -------------------------------------------------------------
     function handleDateChange() {
       const selectedDate = document.getElementById('common-date').value;
       const tomorrowDate = getTomorrowStr();
@@ -1137,9 +1026,6 @@
       loadDateData();
     }
 
-    // -------------------------------------------------------------
-    // SUBMIT BID WITH 1 COIN STAKE
-    // -------------------------------------------------------------
     async function submitBid() {
       const targetDate = document.getElementById('common-date').value;
       const priceInput = document.getElementById('bid-price');
@@ -1163,7 +1049,6 @@
         return;
       }
 
-      // Check current user coin balance
       const currentCoins = cachedUserStats[currentUsername] ? cachedUserStats[currentUsername].coins : 30;
       if (currentCoins < 1) {
         showToast('Insufficient coins! You need at least 1 coin to place a bid.', 'error');
@@ -1183,9 +1068,6 @@
       loadAnalyticsAndSettlements();
     }
 
-    // -------------------------------------------------------------
-    // LOAD DATE DATA & RENDER ARENA MATCH CARDS (Image 2 style)
-    // -------------------------------------------------------------
     async function loadDateData() {
       const targetDate = document.getElementById('common-date').value;
       startCountdownTimer();
@@ -1224,7 +1106,6 @@
         }
       }
 
-      // Check lock state for setting actual price (unlocks at 13:55 Greek time on day before delivery)
       const canSetPrice = canSetActualPrice(targetDate);
       const submitActualBtn = document.getElementById('submit-actual-btn');
       const submitActualIcon = document.getElementById('submit-actual-icon');
@@ -1259,33 +1140,24 @@
         if (settlementStatusIcon) settlementStatusIcon.innerText = "ℹ️";
       }
 
-      // Check self bid
       const bids = bidsSnap.docs.map(d => d.data());
       const selfBid = bids.find(b => b.user_id === currentUser.uid);
       const userHasBid = !!selfBid;
 
-      // Update Arena Pot count
       document.getElementById('arena-pot-count').innerText = bids.length;
       document.getElementById('arena-bidders-count').innerText = `${bids.length} Player${bids.length === 1 ? '' : 's'} in arena`;
       document.getElementById('bids-count-tag').innerText = `${bids.length} Placed`;
 
-      // Render "YOU HAVE PLACED" CARD (Image 2 style)
       renderUserPredictionCard(userHasBid, selfBid, actualExists, actualPrice, bids);
-
-      // Render COMMUNITY BIDS LIST (Image 2 style bottom list)
       renderCommunityBidsList(bids, userHasBid, actualExists, actualPrice);
     }
 
-    // -------------------------------------------------------------
-    // RENDER USER PREDICTION CARD (Image 2 Inspired with Star Badge)
-    // -------------------------------------------------------------
     function renderUserPredictionCard(userHasBid, selfBid, actualExists, actualPrice, allBids) {
       const container = document.getElementById('user-prediction-container');
       const targetDate = document.getElementById('common-date').value;
       const closed = isPastDeadline(targetDate);
 
       if (!userHasBid) {
-        // Form to place a bid
         container.className = "rounded-2xl p-5 border border-indigo-500/30 bg-gradient-to-r from-indigo-950/40 via-brand-card to-indigo-950/30";
         container.innerHTML = `
           <div class="flex flex-col md:flex-row md:items-center justify-between gap-4">
@@ -1311,14 +1183,12 @@
           </div>
         `;
       } else {
-        // User has submitted a bid: Show Image 2's "You have placed" card!
         let outcomeState = 'IN PLAY';
         let badgeStyle = 'border-indigo-500 text-indigo-400';
         let badgeIcon = '⏳';
         let calloutText = 'Waiting for settlement...';
         let calloutColor = 'text-indigo-300';
 
-        // Check if settled
         if (actualExists) {
           let bestDiff = Infinity;
           let winner = null;
@@ -1374,7 +1244,6 @@
               </div>
             </div>
 
-            <!-- Image 2 Golden Starry Badge -->
             <div class="flex items-center justify-center pr-2">
               <div class="relative w-20 h-20 rounded-full flex flex-col items-center justify-center text-center p-2 border-2 ${badgeStyle} bg-[#0b0f1c]/90">
                 <span class="text-base">${badgeIcon}</span>
@@ -1386,9 +1255,6 @@
       }
     }
 
-    // -------------------------------------------------------------
-    // RENDER COMMUNITY BIDS LIST (Image 2 style bottom cards)
-    // -------------------------------------------------------------
     function renderCommunityBidsList(bids, userHasBid, actualExists, actualPrice) {
       const listEl = document.getElementById('community-bids-list');
       listEl.innerHTML = '';
@@ -1403,7 +1269,6 @@
         return;
       }
 
-      // Check winner if actual exists
       let bestDiff = Infinity;
       let winnerName = null;
       if (actualExists) {
@@ -1420,10 +1285,14 @@
         const isSelf = b.user_id === currentUser.uid;
         const isWinner = winnerName === b.username;
 
+        const targetDate = document.getElementById('common-date').value;
+        const isFutureOrUnsettled = !actualExists && !isPastDeadline(targetDate);
+        const shouldHide = isFutureOrUnsettled && !userHasBid && !isSelf;
+
         let displayValue = "🔒 Hidden until you bid";
         let valueColor = "text-slate-500 font-sans italic text-xs";
         
-        if (userHasBid || isSelf || actualExists) {
+        if (!shouldHide) {
           displayValue = `€${b.bid_price.toFixed(2)} / MWh`;
           valueColor = "text-white font-mono font-bold text-sm";
         }
@@ -1439,12 +1308,12 @@
           <div class="p-3.5 rounded-2xl border ${cardBorder} flex items-center justify-between gap-4 transition hover:border-slate-600">
             <div class="flex items-center gap-3">
               <div class="relative">
-                <img src="${getAvatarUrl(b.username)}" alt="${b.username}" class="w-10 h-10 rounded-full bg-slate-800 border border-slate-700 object-cover">
+                <img src="${shouldHide ? 'https://api.dicebear.com/7.x/bottts/svg?seed=hidden&backgroundColor=transparent' : getAvatarUrl(b.username)}" alt="${shouldHide ? 'Anonymous' : b.username}" class="w-10 h-10 rounded-full bg-slate-800 border border-slate-700 object-cover">
                 ${isWinner ? '<span class="absolute -top-1.5 -right-1 text-sm">👑</span>' : ''}
               </div>
               <div>
                 <div class="flex items-center gap-2">
-                  <span class="font-display font-bold text-sm text-white">${b.username}</span>
+                  <span class="font-display font-bold text-sm text-white">${shouldHide ? 'Anonymous Sniper' : b.username}</span>
                   ${isSelf ? '<span class="text-[9px] px-1.5 py-0.2 rounded bg-indigo-500/20 text-indigo-300 border border-indigo-500/30 font-bold">YOU</span>' : ''}
                   ${isWinner ? '<span class="text-[9px] px-1.5 py-0.2 rounded bg-amber-500/20 text-amber-300 border border-amber-500/30 font-bold">WINNER</span>' : ''}
                 </div>
@@ -1464,9 +1333,6 @@
       });
     }
 
-    // -------------------------------------------------------------
-    // SUBMIT ACTUAL HUPX PRICE
-    // -------------------------------------------------------------
     async function submitActualPrice() {
       const targetDate = document.getElementById('common-date').value;
       const actualPrice = parseFloat(document.getElementById('actual-price').value);
@@ -1494,9 +1360,6 @@
       loadAnalyticsAndSettlements();
     }
 
-    // -------------------------------------------------------------
-    // ZERO-SUM ANALYTICS & CREDIT SYSTEM (START EVERY USER WITH 30 COINS)
-    // -------------------------------------------------------------
     async function loadAnalyticsAndSettlements() {
       const bidsSnap = await db.collection('bids').get();
       const actualsSnap = await db.collection('actuals').get();
@@ -1525,7 +1388,6 @@
       const userStats = {};
       const monthlyStats = {};
 
-      // Seed all known registered users with 30 coins!
       Object.keys(usersMap).forEach(uid => {
         const uname = usersMap[uid];
         if (!userStats[uname]) {
@@ -1536,7 +1398,6 @@
         }
       });
 
-      // Also ensure bidders are indexed
       globalBids.forEach(b => {
         if (!userStats[b.username]) {
           userStats[b.username] = { username: b.username, bidsCount: 0, totalAE: 0, settledDaysCount: 0, wins: 0, moneyWon: 0, moneyLost: 0, netBalance: 0, coins: 30, lastTrend: 'neutral' };
@@ -1556,7 +1417,6 @@
       let bestSniperDiff = Infinity;
       let bestSniperUser = '--';
 
-      // Process dates chronologically to trace trend
       Object.keys(bidsByDate).sort().forEach(date => {
         const dateBids = bidsByDate[date];
         const actual = globalActuals[date];
@@ -1596,9 +1456,8 @@
           }
         });
 
-        // ZERO-SUM NETTING & COIN CREDIT LEDGER
         if (winner && isSelectedMonth) {
-          const potWon = dateBids.length - 1; // Net gain for winner
+          const potWon = dateBids.length - 1; 
           dateBids.forEach(b => {
             if (b.username === winner) {
               userStats[winner].wins += 1;
@@ -1627,12 +1486,20 @@
           }
         }
 
-        // Daily breakdown
         dateBids.forEach(b => {
+          const isSelf = b.user_id === currentUser.uid;
+          const isSettled = actual !== undefined;
+          const isDeadlinePassed = isPastDeadline(date);
+          
+          const shouldHideRow = !isSettled && !isDeadlinePassed && !isSelf;
+
+          let displayBidPrice = shouldHideRow ? "🔒 Hidden" : `€${b.bid_price.toFixed(2)}`;
+          let displayUsername = shouldHideRow ? "Anonymous Sniper" : b.username;
+
           let netResultText = "Pending";
           let resultColor = "text-slate-500";
 
-          if (actual !== undefined) {
+          if (isSettled) {
             if (winner === b.username) {
               const netGain = dateBids.length - 1;
               netResultText = `+${netGain} Coins (Won Pot)`;
@@ -1648,16 +1515,15 @@
 
           detailedBreakdown.unshift({
             date,
-            actual: actual !== undefined ? `€${actual.toFixed(2)}` : 'Pending',
-            username: b.username,
-            bidPrice: `€${b.bid_price.toFixed(2)}`,
-            netResult: netResultText,
-            color: resultColor
+            actual: isSettled ? `€${actual.toFixed(2)}` : 'Pending',
+            username: displayUsername,
+            bidPrice: displayBidPrice,
+            netResult: shouldHideRow ? "🔒 Hidden" : netResultText,
+            color: shouldHideRow ? "text-slate-500 italic" : resultColor
           });
         });
       });
 
-      // Calculate final coins for each user: 30 + moneyWon - moneyLost
       Object.keys(userStats).forEach(u => {
         userStats[u].coins = 30 + userStats[u].moneyWon - userStats[u].moneyLost;
       });
@@ -1668,7 +1534,6 @@
       cachedUserStats = userStats;
       cachedMonthlyStats = monthlyStats;
 
-      // Update Ticker Stats
       const bestSniperEl = document.getElementById('ticker-best-sniper');
       if (bestSniperEl) bestSniperEl.innerText = bestSniperUser;
 
@@ -1678,7 +1543,6 @@
         topPlayerEl.innerText = `${sortedByCoins[0].username} (${sortedByCoins[0].coins} 🪙)`;
       }
 
-      // Update Current User Header Pill
       if (currentUsername && userStats[currentUsername]) {
         const selfCoins = userStats[currentUsername].coins;
         document.getElementById('header-user-coins').innerText = selfCoins;
@@ -1692,9 +1556,6 @@
       renderLeaderboardView();
     }
 
-    // -------------------------------------------------------------
-    // RENDER LEADERBOARD VIEW WITH IMAGE 1 PODIUM
-    // -------------------------------------------------------------
     function setLeaderboardSort(sort) {
       lbSort = sort;
       document.getElementById('lb-sort-coins').className = sort === 'coins' 
@@ -1723,7 +1584,6 @@
 
       if (usersList.length === 0) return;
 
-      // Sort users
       usersList.sort((a,b) => {
         if (lbSort === 'coins') {
           if (b.coins !== a.coins) return b.coins - a.coins;
@@ -1739,21 +1599,13 @@
       const top2 = usersList[1] || null;
       const top3 = usersList[2] || null;
 
-      // PODIUM RENDERING (Directly mirroring Image 1!)
-      // Order: #2 on left (yellow), #1 in center (tallest green), #3 on right (coral/pink)
       const podiumEl = document.getElementById('podium-container');
       podiumEl.innerHTML = `
-        <!-- 2nd PLACE (Left, Gold/Amber) -->
         ${renderPodiumStep(top2, 2, 'h-36 sm:h-44 bg-gradient-to-t from-amber-600 to-amber-400', 'border-amber-400', '#f59e0b')}
-
-        <!-- 1st PLACE (Center, Tallest Lime/Green) -->
         ${renderPodiumStep(top1, 1, 'h-48 sm:h-56 bg-gradient-to-t from-emerald-600 to-green-400', 'border-green-400 ring-4 ring-green-400/20', '#22c55e')}
-
-        <!-- 3rd PLACE (Right, Coral/Pink) -->
         ${renderPodiumStep(top3, 3, 'h-28 sm:h-36 bg-gradient-to-t from-rose-600 to-rose-400', 'border-rose-400', '#f43f5e')}
       `;
 
-      // RANKED LIST FOR #4 AND BELOW (Image 1 style rows)
       const listEl = document.getElementById('leaderboard-ranked-list');
       listEl.innerHTML = '';
 
@@ -1784,12 +1636,10 @@
             </div>
 
             <div class="flex items-center gap-3">
-              <!-- Score Badge Pill (Image 1 style) -->
               <div class="flex items-center gap-1.5 px-3 py-1 rounded-full bg-[#0c101c] border border-brand-border font-mono font-bold text-xs text-amber-300">
                 <span>${lbSort === 'coins' ? '🪙' : '🎯'}</span>
                 <span>${scoreText}</span>
               </div>
-              <!-- Trend Arrow (Image 1 style) -->
               <div class="w-5 text-center">
                 ${trendIcon}
               </div>
@@ -1815,7 +1665,6 @@
 
       return `
         <div class="flex-1 flex flex-col items-center justify-end group">
-          <!-- User Avatar & Badge Floating above pedestal -->
           <div class="flex flex-col items-center mb-3 text-center space-y-1">
             <div class="relative">
               <img src="${getAvatarUrl(user.username)}" alt="${user.username}" class="w-12 h-12 sm:w-16 sm:h-16 rounded-full bg-slate-900 border-2 ${avatarRing} object-cover shadow-xl transition transform group-hover:scale-105">
@@ -1826,13 +1675,11 @@
               ${user.username}
             </div>
 
-            <!-- Score Pill (Image 1 style) -->
             <div class="px-2.5 py-0.5 rounded-full bg-[#0c101c]/90 border border-brand-border text-[11px] font-mono font-bold text-white shadow">
               ${scoreBadge}
             </div>
           </div>
 
-          <!-- Pedestal Column -->
           <div class="w-full ${pedestalBg} rounded-t-3xl flex items-center justify-center shadow-2xl relative overflow-hidden transition-all duration-300">
             <div class="absolute inset-0 bg-white/10 opacity-0 group-hover:opacity-100 transition"></div>
             <span class="font-display font-black text-3xl sm:text-4xl text-slate-950/80 drop-shadow-sm">#${rank}</span>
@@ -1841,9 +1688,6 @@
       `;
     }
 
-    // -------------------------------------------------------------
-    // RENDER SETTLEMENT LEDGER & DEBT ROUTING
-    // -------------------------------------------------------------
     function renderSettlementLedger(userStats, detailedBreakdown) {
       const settlementBody = document.getElementById('settlement-table-body');
       settlementBody.innerHTML = '';
@@ -1864,7 +1708,6 @@
         `;
       });
 
-      // Daily Breakdown Matrix
       const dailyBody = document.getElementById('daily-breakdown-body');
       dailyBody.innerHTML = '';
       detailedBreakdown.forEach(row => {
@@ -1919,9 +1762,6 @@
       }
     }
 
-    // -------------------------------------------------------------
-    // MANAGE INVITES
-    // -------------------------------------------------------------
     async function generateInviteCode() {
       const code = 'INVITE-' + Math.random().toString(36).substring(2, 8).toUpperCase();
       await db.collection('invites').doc(code).set({
@@ -1969,28 +1809,6 @@
           </tr>
         `;
       });
-    }
-
-    // -------------------------------------------------------------
-    // EXPORT DATA TO EXCEL / CSV
-    // -------------------------------------------------------------
-    function exportToCSV() {
-      let csvContent = "data:text/csv;charset=utf-8,";
-      csvContent += "Target Date,User,Bid Price (EUR),Actual Price (EUR)\n";
-
-      globalBids.forEach(b => {
-        const actual = globalActuals[b.target_date] !== undefined ? globalActuals[b.target_date] : "";
-        csvContent += `${b.target_date},${b.username},${b.bid_price},${actual}\n`;
-      });
-
-      const encodedUri = encodeURI(csvContent);
-      const link = document.createElement("a");
-      link.setAttribute("href", encodedUri);
-      link.setAttribute("download", `HUPX_Arena_Data_${new Date().toISOString().split('T')[0]}.csv`);
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
-      showToast('Exported CSV backup successfully.', 'success');
     }
   </script>
 </body>
