@@ -146,7 +146,7 @@
         <div class="flex items-start gap-3 p-2.5 rounded-xl bg-slate-800/50 border border-slate-700/50">
           <span class="text-xl">🎯</span>
           <div>
-            <span class="font-bold text-white">&lt; €10.00 MWh Precision Rule:</span> Winning bid must be within €10 of the actual price, otherwise stakes are returned / rolled over.
+            <span class="font-bold text-white">&lt; €<span class="win-limit"></span> MWh Precision Rule:</span> Winning bid must be within €<span class="win-limit"></span> of the actual price, otherwise stakes are returned / rolled over.
           </div>
         </div>
         <div class="flex items-start gap-3 p-2.5 rounded-xl bg-slate-800/50 border border-slate-700/50">
@@ -559,7 +559,7 @@
           </div>
 
           <span class="text-xs text-slate-400">
-            Strict Zero-Sum: Charges apply only when a bid is within &lt; €10.00
+            Strict Zero-Sum: Charges apply only when a bid is within &lt; €<span class="win-limit"></span>
           </span>
         </div>
 
@@ -670,6 +670,9 @@
   </main>
 
   <script>
+
+    const WIN_LIMIT_EUR = 100;
+
     const firebaseConfig = {
       apiKey: "AIzaSyC-98ixBhOkp0-9sh64Rl0AJ233PIJcFCs",
       authDomain: "hungary-energy-betting.firebaseapp.com",
@@ -1167,7 +1170,7 @@
                 <span class="text-[10px] px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-300 border border-amber-500/30 font-bold">Cost: 1 Coin</span>
               </div>
               <h3 class="font-display font-bold text-lg text-white">Place Your Prediction for ${targetDate}</h3>
-              <p class="text-xs text-slate-400">Closest bid to actual HUPX price (&lt; €10 error) takes the whole pot!</p>
+              <p class="text-xs text-slate-400">Closest bid to actual HUPX price (&lt; €${WIN_LIMIT_EUR} error) takes the whole pot!</p>
             </div>
 
             <div class="flex flex-wrap items-center gap-3">
@@ -1195,7 +1198,7 @@
 
           allBids.forEach(b => {
             const diff = Math.abs(b.bid_price - actualPrice);
-            if (diff < bestDiff && diff < 10.0) {
+            if (diff < bestDiff && diff < WIN_LIMIT_EUR) {
               bestDiff = diff;
               winner = b.username;
             }
@@ -1218,7 +1221,7 @@
             outcomeState = 'ROLLED';
             badgeStyle = 'border-slate-500 text-slate-400';
             badgeIcon = '↺';
-            calloutText = 'No bid was within < €10.00. Pot rolled over / 0 deduction.';
+            calloutText = `No bid was within < €${WIN_LIMIT_EUR}. Pot rolled over / 0 deduction.`;
             calloutColor = 'text-slate-400';
           }
         }
@@ -1274,7 +1277,7 @@
       if (actualExists) {
         bids.forEach(b => {
           const diff = Math.abs(b.bid_price - actualPrice);
-          if (diff < bestDiff && diff < 10.0) {
+          if (diff < bestDiff && diff < WIN_LIMIT_EUR) {
             bestDiff = diff;
             winnerName = b.username;
           }
@@ -1442,7 +1445,7 @@
               monthlyStats[b.username].settledDaysCount += 1;
             }
 
-            if (ae < bestDiff && ae < 10.0) {
+            if (ae < bestDiff && ae < WIN_LIMIT_EUR) {
               bestDiff = ae;
               winner = b.username;
             }
@@ -1810,6 +1813,8 @@
         `;
       });
     }
+
+    document.querySelectorAll('.win-limit').forEach(el => el.textContent = WIN_LIMIT_EUR);
   </script>
 </body>
 </html>
