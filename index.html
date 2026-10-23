@@ -416,6 +416,7 @@
               <span id="bids-count-tag" class="text-xs px-2.5 py-1 rounded-full bg-slate-800 text-slate-300 border border-slate-700">0 Bids</span>
             </div>
 
+            <div id="bids-chart" class="glass-card rounded-2xl p-4 border border-brand-border hidden"></div>
             <div id="community-bids-list" class="space-y-2.5">
             </div>
           </div>
@@ -748,6 +749,51 @@
         menu.classList.add('hidden');
       }
     });
+
+
+    function renderBidsChart(bids, reveal, actualExists, actualPrice) {
+      const el = document.getElementById('bids-chart');
+      if (!reveal || bids.length === 0) {
+        el.classList.add('hidden');
+        el.innerHTML = '';
+        return;
+      }
+
+      const sorted = [...bids].sort((a, b) => a.bid_price - b.bid_price);
+      const prices = sorted.map(b => b.bid_price);
+      const min = Math.min(...prices);
+      const span = (Math.max(...prices) - min) || 1;
+
+      // Same winner rule as the rest of the app
+      let winner = null, bestDiff = Infinity;
+      if (actualExists) {
+        sorted.forEach(b => {
+          const d = Math.abs(b.bid_price - actualPrice);
+          if (d < bestDiff && d < WIN_LIMIT_EUR) { bestDiff = d; winner = b.username; }
+        });
+      }
+
+      const bars = sorted.map(b => {
+        const h = 15 + ((b.bid_price - min) / span) * 65; // 15%-80% of chart height
+        const isSelf = b.user_id === currentUser.uid;
+        const color = b.username === winner ? 'bg-amber-400'
+                    : isSelf ? 'bg-indigo-500'
+                    : 'bg-slate-600';
+        return `
+          <div class="flex-1 min-w-[28px] h-full flex flex-col justify-end items-center gap-1">
+            <span class="text-[10px] font-mono font-bold text-white">${b.bid_price.toFixed(1)}</span>
+            <div class="w-full rounded-t-lg ${color}" style="height:${h}%"></div>
+            <span class="text-[9px] text-slate-400 max-w-full truncate">${b.username}</span>
+          </div>`;
+      }).join('');
+
+      el.innerHTML = `
+        <div class="text-xs font-bold text-slate-300 mb-3">📊 Bid distribution (low → high)</div>
+        <div class="flex items-end gap-1.5 h-44 overflow-x-auto">${bars}</div>
+        ${actualExists ? `<div class="text-[11px] text-emerald-400 font-mono mt-2">Actual HUPX: €${actualPrice.toFixed(2)}</div>` : ''}
+      `;
+      el.classList.remove('hidden');
+    }
 
     function showToast(message, type = 'info') {
       const container = document.getElementById('toast-container');
@@ -1153,6 +1199,7 @@
 
       renderUserPredictionCard(userHasBid, selfBid, actualExists, actualPrice, bids);
       renderCommunityBidsList(bids, userHasBid, actualExists, actualPrice);
+      renderBidsChart(bids, userHasBid || actualExists || isPastDeadline(targetDate), actualExists, actualPrice);
     }
 
     function renderUserPredictionCard(userHasBid, selfBid, actualExists, actualPrice, allBids) {
